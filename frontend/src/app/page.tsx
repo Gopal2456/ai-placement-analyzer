@@ -45,7 +45,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f7f8fa] text-[#111827]">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-black/[0.06] bg-[#f7f8fa]/90 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-black/6 bg-[#f7f8fa]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
           {/* Logo */}
           <a href="#" className="flex items-center gap-3">
@@ -55,7 +55,7 @@ export default function Home() {
 
             <div>
               <div className="text-[15px] font-bold tracking-tight">
-                Placement<span className="text-violet-600">AI</span>
+                Placement <span className="text-violet-600">AI</span>
               </div>
               <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-400">
                 Career Intelligence
@@ -111,7 +111,7 @@ export default function Home() {
         </div>
 
         {menuOpen && (
-          <div className="border-t border-black/[0.06] bg-white px-6 py-5 md:hidden">
+          <div className="border-t border-black/6 bg-white px-6 py-5 md:hidden">
             <div className="flex flex-col gap-4">
               <a href="#features" className="text-sm font-medium">
                 Features
@@ -136,7 +136,7 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-[8%] top-20 h-72 w-72 rounded-full bg-violet-200/30 blur-3xl" />
           <div className="absolute right-[8%] top-32 h-80 w-80 rounded-full bg-blue-200/25 blur-3xl" />
-          <div className="absolute left-1/2 top-0 h-px w-[80%] -translate-x-1/2 bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+          <div className="absolute left-1/2 top-0 h-px w-[80%] -translate-x-1/2 bg-linear-to-r from-transparent via-gray-300 to-transparent" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-20 lg:px-8 lg:pb-28 lg:pt-28">
@@ -153,7 +153,7 @@ export default function Home() {
             <h1 className="text-5xl font-bold leading-[1.05] tracking-[-0.045em] text-gray-950 sm:text-6xl lg:text-7xl">
               Know exactly how
               <br />
-              <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-violet-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent">
                 job-ready you are.
               </span>
             </h1>
@@ -186,14 +186,14 @@ export default function Home() {
 
           {/* Product Preview */}
           <div className="relative mx-auto mt-16 max-w-6xl lg:mt-20">
-            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-r from-violet-500/10 via-blue-500/10 to-cyan-500/10 blur-2xl" />
+            <div className="absolute -inset-4 rounded-4xl bg-linear-to-r from-violet-500/10 via-blue-500/10 to-cyan-500/10 blur-2xl" />
 
             <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_30px_80px_-30px_rgba(15,23,42,0.3)]">
               {/* Browser bar */}
               <div className="flex h-12 items-center gap-2 border-b border-gray-100 bg-gray-50 px-5">
-                <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+                <span className="h-3 w-3 rounded-full bg-rose-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
 
                 <div className="mx-auto hidden h-7 w-80 items-center justify-center rounded-md border border-gray-200 bg-white text-[10px] text-gray-400 sm:flex">
                   app.placementai.com/dashboard
@@ -201,7 +201,7 @@ export default function Home() {
               </div>
 
               {/* Dashboard preview */}
-              <div className="grid min-h-[430px] grid-cols-12">
+              <div className="grid min-h-107.5 grid-cols-12">
                 {/* Sidebar */}
                 <aside className="hidden border-r border-gray-100 bg-[#fbfbfc] p-5 sm:col-span-3 sm:block lg:col-span-2">
                   <div className="mb-8 flex items-center gap-2">
@@ -245,7 +245,7 @@ export default function Home() {
                       </h2>
                     </div>
 
-                    <div className="hidden h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-[10px] font-bold text-white sm:flex">
+                    <div className="hidden h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-[10px] font-bold text-white sm:flex">
                       G
                     </div>
                   </div>
@@ -292,8 +292,8 @@ export default function Home() {
                       </div>
 
                       <div className="mt-7 flex items-center gap-7">
-                        <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[10px] border-violet-100">
-                          <div className="absolute inset-[-10px] rounded-full border-[10px] border-violet-600 border-b-transparent border-l-transparent rotate-[-40deg]" />
+                        <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-10 border-violet-100">
+                          <div className="absolute -inset-2.5 rounded-full border-10 border-violet-600 border-b-transparent border-l-transparent rotate-[-40deg]" />
                           <div className="text-center">
                             <div className="text-2xl font-bold text-gray-900">
                               87
@@ -395,7 +395,7 @@ export default function Home() {
                 className="group bg-white p-7 transition hover:bg-gray-50"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-300">
+                  <span className="text-4xl font-semibold text-gray-300">
                     {feature.number}
                   </span>
 
