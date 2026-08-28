@@ -42,8 +42,8 @@ const InterviewHome = () => {
   const difficulties = ["Easy", "Medium", "Hard", "Mixed"];
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-8 text-gray-900">
-      <div className="mx-auto max-w-6xl">
+    <div className="min-h-screen bg-gray-50 px-8 py-7 text-gray-900">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
