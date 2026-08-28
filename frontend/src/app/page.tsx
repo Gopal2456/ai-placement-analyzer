@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const features = [
   {
@@ -48,9 +49,13 @@ export default function Home() {
       <nav className="sticky top-0 z-50 border-b border-black/6 bg-[#f7f8fa]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111827] text-white shadow-sm">
-              <span className="text-lg font-bold">A</span>
+          <a href="#" className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
+              <img
+                src="/Logo.png"
+                alt="Logo"
+                className="h-8 w-8 object-contain"
+              />
             </div>
 
             <div>
@@ -87,13 +92,19 @@ export default function Home() {
 
           {/* Actions */}
           <div className="hidden items-center gap-3 md:flex">
-            <button className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-white hover:text-gray-900">
+            <Link
+              href="/login"
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-white hover:text-gray-900"
+            >
               Log in
-            </button>
+            </Link>
 
-            <button className="rounded-xl bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:-translate-y-0.5 hover:bg-black">
+            <Link
+              href="/dashboard"
+              className="rounded-xl bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:-translate-y-0.5 hover:bg-black"
+            >
               Get started
-            </button>
+            </Link>
           </div>
 
           {/* Mobile menu */}
@@ -221,9 +232,7 @@ export default function Home() {
                       <div
                         key={String(label)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[10px] font-medium ${
-                          active
-                            ? "bg-gray-900 text-white"
-                            : "text-gray-400"
+                          active ? "bg-gray-900 text-white" : "text-gray-400"
                         }`}
                       >
                         <span>{icon}</span>
@@ -298,7 +307,9 @@ export default function Home() {
                             <div className="text-2xl font-bold text-gray-900">
                               87
                             </div>
-                            <div className="text-[8px] text-gray-400">MATCH</div>
+                            <div className="text-[8px] text-gray-400">
+                              MATCH
+                            </div>
                           </div>
                         </div>
 

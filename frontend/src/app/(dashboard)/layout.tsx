@@ -35,11 +35,7 @@ const secondaryNavigation = [
   },
 ];
 
-const DashboardLayout = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   return (
@@ -49,9 +45,13 @@ const DashboardLayout = ({
         <aside className="fixed inset-y-0 left-0 z-50 hidden w-61 border-r border-gray-100 bg-white lg:flex lg:flex-col">
           {/* Logo */}
           <div className="flex h-20 shrink-0 items-center border-gray-100 px-7">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm">
-                <span className="text-lg font-bold">A</span>
+            <Link href="/" className="inline-flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
+                <img
+                  src="/Logo.png"
+                  alt="Logo"
+                  className="h-8 w-8 object-contain"
+                />
               </div>
 
               <div>

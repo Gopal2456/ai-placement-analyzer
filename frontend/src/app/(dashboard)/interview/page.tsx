@@ -1,9 +1,10 @@
 import React from 'react'
+import InterviewHome from '@/components/Interview/InterviewHome'
 
 const page = () => {
   return (
     <div>
-      this is interview section
+      <InterviewHome/>
     </div>
   )
 }
