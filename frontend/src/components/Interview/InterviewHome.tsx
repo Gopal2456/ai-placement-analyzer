@@ -355,7 +355,7 @@ const PracticeItem = ({
     <div className="flex gap-3">
       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-xs font-bold text-violet-600">
         ✓
-      </div>
+      </div> 
 
       <div>
         <p className="text-xs font-semibold text-gray-800">{title}</p>
