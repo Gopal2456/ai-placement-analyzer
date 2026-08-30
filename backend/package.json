@@ -17,5 +17,11 @@
     "mongoose": "^9.9.4",
     "multer": "^2.3.0",
     "pdf-parse": "^2.4.5"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "uploads/*",
+      "uploads/**"
+    ]
   }
 }
