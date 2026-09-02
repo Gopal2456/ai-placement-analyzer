@@ -41,8 +41,8 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
-app.use("/api/analyze", analysisRoutes);
 app.use("/api/interview", interviewRoutes);
+app.use("/api/analysis", analysisRoutes);
 
 /* -------------------- 404 -------------------- */
 
