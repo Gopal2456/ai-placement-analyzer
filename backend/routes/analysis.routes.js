@@ -2,11 +2,14 @@ const express = require("express");
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Analysis API working",
-  });
-});
+const auth = require("../middleware/auth");
+
+const {
+  createAnalysis,
+  getAnalysis,
+} = require("../controllers/analysis.controller");
+
+router.post("/", auth, createAnalysis);
+router.get("/:resumeId", auth, getAnalysis);
 
 module.exports = router;
