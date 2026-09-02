@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import LogoutButton from "@/components/LoginSignup/LogoutButton";
+import { LogOut } from 'lucide-react';
 
 const navigation = [
   {
@@ -27,14 +29,6 @@ const navigation = [
   },
 ];
 
-const secondaryNavigation = [
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: "⚙",
-  },
-];
-
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
@@ -44,7 +38,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Sidebar */}
         <aside className="fixed inset-y-0 left-0 z-50 hidden w-61 border-r border-gray-100 bg-white lg:flex lg:flex-col">
           {/* Logo */}
-          <div className="flex h-20 shrink-0 items-center border-gray-100 px-7">
+          <div className="flex h-20 shrink-0 items-center border-gray-100 px-4">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
                 <img
@@ -56,7 +50,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
               <div>
                 <p className="text-[15px] font-bold tracking-tight text-gray-950">
-                  Placement<span className="text-violet-600">AI</span>
+                  Placement<span className="text-violet-600"> AI</span>
                 </p>
 
                 <p className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-gray-400">
@@ -118,79 +112,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </nav>
             </div>
 
-            {/* New Analysis Card */}
-            {/* <div className="mt-8 rounded-2xl bg-gray-950 p-4 text-white">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-sm text-violet-300">
-                ✦
-              </div>
-
-              <p className="mt-4 text-xs font-bold">
-                Analyze a new job
-              </p>
-
-              <p className="mt-1 text-[9px] leading-4 text-gray-500">
-                Compare your resume with a job description.
-              </p>
-
-              <Link
-                href="/analysis/new"
-                className="mt-4 flex h-9 items-center justify-center rounded-lg bg-white text-[10px] font-bold text-gray-950 transition hover:bg-gray-100"
-              >
-                Start analysis →
-              </Link>
-            </div> */}
-
             {/* Bottom navigation */}
             <div className="mt-auto">
               <p className="mb-3 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
                 Account
               </p>
 
-              <nav className="space-y-1">
-                {secondaryNavigation.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
-
-                  return (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className={`group flex h-11 items-center gap-3 rounded-xl px-3 text-xs font-medium transition ${
-                        isActive
-                          ? "bg-gray-950 text-white"
-                          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                      }`}
-                    >
-                      <span
-                        className={`text-sm ${
-                          isActive
-                            ? "text-violet-300"
-                            : "text-gray-400 group-hover:text-violet-600"
-                        }`}
-                      >
-                        {item.icon}
-                      </span>
-
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
               {/* User */}
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <div className="flex items-center gap-3 rounded-xl p-2">
+              <div className="mt-4 border-t border-gray-100 py-4">
+                <div className="flex items-center gap-3 pb-2 rounded-xl">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-xs font-bold text-white">
                     G
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-bold text-gray-900">
+                    <p className="truncate text-[13px] font-bold text-gray-600">
                       Gopal
                     </p>
 
-                    <p className="truncate text-[9px] text-gray-400">
+                    <p className="truncate text-[10px] text-gray-400">
                       Career Explorer
                     </p>
                   </div>
@@ -201,6 +141,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   >
                     •••
                   </button>
+                </div>
+                <div className="flex hover:bg-rose-50 hover:text-rose-400 text-sm p-2 rounded-md text-gray-400 items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <LogoutButton />
                 </div>
               </div>
             </div>
