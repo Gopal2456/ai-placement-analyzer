@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -72,9 +72,11 @@ const connectDB = async () => {
 
     console.log("MongoDB connected successfully ");
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
+
+    server.timeout = 30000;
   } catch (error) {
     console.error("MongoDB connection failed:", error.message);
     process.exit(1);
