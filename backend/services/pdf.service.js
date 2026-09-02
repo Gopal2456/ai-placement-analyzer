@@ -1,8 +1,11 @@
 const fs = require("fs");
-const pdfParse = require("pdf-parse");
+const { PDFParse } = require("pdf-parse");
 
 const extractTextFromPDF = async (filePath) => {
   try {
+    console.log("Starting PDF extraction...");
+    console.log("File:", filePath);
+
     if (!fs.existsSync(filePath)) {
       throw new Error("Uploaded PDF file was not found");
     }
@@ -13,28 +16,43 @@ const extractTextFromPDF = async (filePath) => {
       throw new Error("Uploaded PDF is empty");
     }
 
-    const pdfPromise = pdfParse(fileBuffer);
+    console.log("PDF size:", fileBuffer.length);
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("PDF processing timed out"));
-      }, 15000);
+    const parser = new PDFParse({
+      data: fileBuffer,
     });
 
-    const pdfData = await Promise.race([
-      pdfPromise,
-      timeoutPromise,
-    ]);
+    try {
+      const result = await parser.getText();
 
-    if (!pdfData || !pdfData.text) {
-      throw new Error("Could not extract text from PDF");
+      if (!result || !result.text) {
+        throw new Error("Could not extract text from PDF");
+      }
+
+      const extractedText = result.text.trim();
+
+      console.log(
+        "PDF text extracted successfully"
+      );
+
+      console.log(
+        "Characters extracted:",
+        extractedText.length
+      );
+
+      return extractedText;
+    } finally {
+      await parser.destroy();
     }
-
-    return pdfData.text.trim();
   } catch (error) {
-    console.error("PDF extraction error:", error);
+    console.error(
+      "PDF extraction error:",
+      error
+    );
 
-    throw error;
+    throw new Error(
+      `PDF processing failed: ${error.message}`
+    );
   }
 };
 
