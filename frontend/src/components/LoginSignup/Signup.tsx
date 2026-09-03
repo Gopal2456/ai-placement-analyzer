@@ -2,16 +2,50 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { toast } from "react-toastify";
+import api from "@/api/axios";
+import { setTimeout } from "timers/promises";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Connect this to your Node.js register API later
-    console.log("Signup submitted");
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await api.post("/auth/register", {
+        name,
+        email,
+        password,
+      });
+
+      console.log("Register response:", response.data);
+
+      toast.success(response.data.message || "Account created successfully!");
+
+      window.setTimeout(() => {
+        window.location.href = "/login";
+      }, 1000);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+
+      toast.error(error.response?.data?.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,6 +105,8 @@ const Signup = () => {
                 placeholder="Gopal Mahajan"
                 autoComplete="name"
                 required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10"
               />
             </div>
@@ -91,6 +127,8 @@ const Signup = () => {
                 placeholder="you@example.com"
                 autoComplete="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10"
               />
             </div>
@@ -112,6 +150,8 @@ const Signup = () => {
                   placeholder="Create a strong password"
                   autoComplete="new-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   minLength={8}
                   className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 pr-16 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10"
                 />
@@ -147,6 +187,8 @@ const Signup = () => {
                   placeholder="Confirm your password"
                   autoComplete="new-password"
                   required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   minLength={8}
                   className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 pr-16 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10"
                 />
@@ -164,12 +206,12 @@ const Signup = () => {
             {/* Submit */}
             <button
               type="submit"
-              className="group flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black"
+              disabled={loading}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Create account
-              <span className="transition-transform group-hover:translate-x-1">
-                →
-              </span>
+              {loading ? "Creating account..." : "Create account"}
+
+              {!loading && <span>→</span>}
             </button>
           </form>
 
@@ -203,7 +245,6 @@ const Signup = () => {
               Sign in
             </Link>
           </p>
-
         </div>
       </div>
     </main>
