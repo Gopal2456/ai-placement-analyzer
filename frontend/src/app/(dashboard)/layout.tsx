@@ -4,28 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 import LogoutButton from "@/components/LoginSignup/LogoutButton";
-import { LogOut } from 'lucide-react';
+import { FileUser, LogOut, LayoutDashboard, SearchCheck, BookOpenCheck   } from "lucide-react";
 
 const navigation = [
   {
     label: "Dashboard",
     href: "/dashboard",
-    icon: "▦",
+    icon: <LayoutDashboard />,
   },
   {
     label: "My Resumes",
     href: "/resumes",
-    icon: "□",
+    icon: <FileUser />,
   },
   {
     label: "Job Matches",
     href: "/recommended-jobs",
-    icon: "⌁",
+    icon: <SearchCheck />,
   },
   {
     label: "Interviews",
     href: "/interview",
-    icon: "◌",
+    icon: <BookOpenCheck />,
   },
 ];
 
@@ -77,14 +77,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     <Link
                       key={item.label}
                       href={item.href}
-                      className={`group flex h-11 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all ${
+                      className={`group flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all ${
                         isActive
                           ? "bg-gray-950 text-white shadow-sm"
                           : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                       }`}
                     >
                       <span
-                        className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm ${
+                        className={`flex h-4.5 w-4.5 items-center justify-center rounded-lg text-sm ${
                           isActive
                             ? "bg-white/10 text-violet-300"
                             : "text-gray-400 group-hover:text-violet-600"

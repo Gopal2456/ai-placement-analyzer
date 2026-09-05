@@ -4,7 +4,6 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { toast } from "react-toastify";
 import api from "@/api/axios";
-import { setTimeout } from "timers/promises";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
