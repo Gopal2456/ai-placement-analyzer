@@ -1,35 +1,96 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-
-const resumes = [
-  {
-    id: "1",
-    name: "Gopal_Mahajan_Resume.pdf",
-    role: "Frontend Developer",
-    size: "1.8 MB",
-    uploaded: "Today",
-    skills: 18,
-    experience: "2+ years",
-    status: "Ready",
-    primary: true,
-  },
-  {
-    id: "2",
-    name: "Gopal_FullStack_Resume.pdf",
-    role: "Full Stack Developer",
-    size: "2.1 MB",
-    uploaded: "Aug 18, 2026",
-    skills: 22,
-    experience: "2+ years",
-    status: "Ready",
-    primary: false,
-  },
-];
+import { useEffect, useRef, useState } from "react";
+import { ListCheck, SquareText, Plus } from "lucide-react";
+import api from "@/api/axios";
+import { toast } from "react-toastify";
 
 const Resumes = () => {
-  const [selectedResume, setSelectedResume] = useState("1");
+  const [selectedResume, setSelectedResume] = useState<string | null>(null);
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [count, setCount] = useState(0);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchResumes = async () => {
+    try {
+      const response = await api.get("/resumes/");
+      const resumeList = response.data.resumes || [];
+
+      setResumes(resumeList);
+
+      if (resumeList.length > 0) {
+        setSelectedResume(resumeList[0]._id);
+      }
+      setCount(response.data.count);
+    } catch (error) {
+      console.error("Error");
+    }
+  };
+
+  useEffect(() => {
+    fetchResumes();
+  }, []);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setUploadError("");
+
+    // Check file type
+    if (file.type !== "application/pdf") {
+      setUploadError("Please upload a PDF file.");
+      event.target.value = "";
+      return;
+    }
+
+    // Check file size - 10 MB
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("File size must be less than 10 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    try {
+      setUploading(true);
+
+      await api.post("/resumes/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success("Resume uploaded successfully!");
+
+      // Refresh resume list after successful upload
+      await fetchResumes();
+
+      // Reset file input
+      event.target.value = "";
+    } catch (error: any) {
+      console.error("Resume upload error:", error);
+      toast.error("Failed to upload resume. Please try again.");
+
+      setUploadError(
+        error?.response?.data?.message ||
+          "Failed to upload resume. Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const selectedResumeData = resumes.find(
+    (resume) => resume._id === selectedResume,
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f8fa]">
@@ -42,7 +103,7 @@ const Resumes = () => {
               Resume Manager
             </div>
 
-            <h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-gray-950">
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-gray-800">
               My Resumes
             </h1>
 
@@ -51,16 +112,32 @@ const Resumes = () => {
             </p>
           </div>
 
-          <Link
-            href="/resumes/upload"
-            className="group flex h-11 items-center gap-2 rounded-xl bg-gray-950 px-5 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:-translate-y-0.5 hover:bg-black"
-          >
-            <span className="text-lg leading-none">+</span>
-            Upload resume
-            <span className="transition-transform group-hover:translate-x-1">
-              →
-            </span>
-          </Link>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={handleUpload}
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-3 pr-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="text-lg leading-none">
+                <Plus className="h-5 w-5" />
+              </span>
+
+              {uploading ? "Uploading..." : "Upload resume"}
+
+              <span className="transition-transform group-hover:translate-x-1">
+                →
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -70,14 +147,12 @@ const Resumes = () => {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-950">2</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Total resumes
-                </p>
+                <p className="text-2xl font-semibold text-gray-800">{count}</p>
+                <p className="mt-1 text-xs text-gray-400">Total resumes</p>
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                □
+                <SquareText className="w-5 h-5" />
               </div>
             </div>
           </div>
@@ -85,14 +160,19 @@ const Resumes = () => {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-950">18</p>
+                <p className="text-2xl font-semibold text-gray-800">
+                  {
+                    new Set(resumes.flatMap((resume) => resume.skills || []))
+                      .size
+                  }
+                </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  Skills extracted
+                  Unique Skills extracted
                 </p>
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                ◇
+                <ListCheck className="w-5 h-5" />
               </div>
             </div>
           </div>
@@ -100,10 +180,8 @@ const Resumes = () => {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-950">87%</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Best job match
-                </p>
+                <p className="text-2xl font-semibold text-gray-800">87%</p>
+                <p className="mt-1 text-xs text-gray-400">Best job match</p>
               </div>
 
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
@@ -119,7 +197,7 @@ const Resumes = () => {
           <section className="xl:col-span-2">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-bold text-gray-950">
+                <h2 className="text-sm font-semibold text-gray-800">
                   Your resumes
                 </h2>
 
@@ -135,13 +213,13 @@ const Resumes = () => {
 
             <div className="space-y-3">
               {resumes.map((resume) => {
-                const active = selectedResume === resume.id;
+                const active = selectedResume === resume._id;
 
                 return (
                   <button
-                    key={resume.id}
+                    key={resume._id}
                     type="button"
-                    onClick={() => setSelectedResume(resume.id)}
+                    onClick={() => setSelectedResume(resume._id)}
                     className={`w-full rounded-2xl border bg-white p-5 text-left transition ${
                       active
                         ? "border-violet-300 ring-2 ring-violet-500/10"
@@ -150,7 +228,7 @@ const Resumes = () => {
                   >
                     <div className="flex items-start gap-4">
                       {/* PDF icon */}
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-xs font-bold text-red-500">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-xs font-semibold text-red-500">
                         PDF
                       </div>
 
@@ -158,12 +236,12 @@ const Resumes = () => {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="truncate text-sm font-bold text-gray-900">
-                                {resume.name}
+                              <h3 className="truncate text-sm font-semibold text-gray-900">
+                                {resume.fileName}
                               </h3>
 
                               {resume.primary && (
-                                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[8px] font-bold text-violet-600">
+                                <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[8px] font-semibold text-violet-600">
                                   PRIMARY
                                 </span>
                               )}
@@ -186,7 +264,7 @@ const Resumes = () => {
                               Skills
                             </p>
                             <p className="mt-1 text-xs font-semibold text-gray-800">
-                              {resume.skills}
+                              {resume.skills.length}
                             </p>
                           </div>
 
@@ -204,15 +282,20 @@ const Resumes = () => {
                               Uploaded
                             </p>
                             <p className="mt-1 text-xs font-semibold text-gray-800">
-                              {resume.uploaded}
+                              {new Date(resume.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <span className="hidden text-gray-300 sm:block">
-                        →
-                      </span>
+                      <span className="hidden text-gray-300 sm:block">→</span>
                     </div>
                   </button>
                 );
@@ -220,22 +303,42 @@ const Resumes = () => {
             </div>
 
             {/* Upload area */}
-            <Link
-              href="/resumes/upload"
-              className="mt-4 flex min-h-37.5 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-violet-300 hover:bg-violet-50/30"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-lg text-violet-600">
-                ↑
-              </div>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={handleUpload}
+                className="hidden"
+              />
 
-              <h3 className="mt-3 text-sm font-bold text-gray-800">
-                Upload another resume
-              </h3>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="mt-4 flex min-h-37.5 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-violet-300 hover:bg-violet-50/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-lg text-violet-600">
+                  {uploading ? "..." : "↑"}
+                </div>
 
-              <p className="mt-1 text-xs text-gray-400">
-                PDF files up to 10 MB
-              </p>
-            </Link>
+                <h3 className="mt-3 text-sm font-semibold text-gray-800">
+                  {uploading ? "Uploading resume..." : "Upload another resume"}
+                </h3>
+
+                <p className="mt-1 text-xs text-gray-400">
+                  {uploading
+                    ? "Please wait while your resume is uploaded."
+                    : "PDF files up to 10 MB"}
+                </p>
+              </button>
+
+              {uploadError && (
+                <p className="mt-2 text-center text-xs font-medium text-red-500">
+                  {uploadError}
+                </p>
+              )}
+            </div>
           </section>
 
           {/* Resume preview */}
@@ -246,8 +349,8 @@ const Resumes = () => {
                   Resume profile
                 </p>
 
-                <h2 className="mt-1 text-sm font-bold text-gray-950">
-                  Gopal Mahajan
+                <h2 className="mt-1 text-sm font-semibold text-gray-800">
+                  {selectedResumeData?.fileName || "Resume Profile"}
                 </h2>
               </div>
 
@@ -267,10 +370,10 @@ const Resumes = () => {
                     Profile readiness
                   </p>
 
-                  <p className="mt-1 text-2xl font-bold">82%</p>
+                  <p className="mt-1 text-2xl font-semibold">82%</p>
                 </div>
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500/30 border-t-violet-500 text-[10px] font-bold">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500/30 border-t-violet-500 text-[10px] font-semibold">
                   82
                 </div>
               </div>
@@ -288,28 +391,17 @@ const Resumes = () => {
             {/* Extracted skills */}
             <div className="mt-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-gray-900">
+                <h3 className="text-xs font-semibold text-gray-900">
                   Extracted skills
                 </h3>
 
                 <span className="text-[9px] text-gray-400">
-                  18 skills
+                  {selectedResumeData?.skills?.length || 0} skills
                 </span>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  "React",
-                  "Next.js",
-                  "TypeScript",
-                  "JavaScript",
-                  "Node.js",
-                  "MongoDB",
-                  "Express",
-                  "Tailwind CSS",
-                  "Git",
-                  "REST API",
-                ].map((skill) => (
+                {selectedResumeData?.skills?.map((skill: string) => (
                   <span
                     key={skill}
                     className="rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-[9px] font-medium text-gray-600"
@@ -322,7 +414,7 @@ const Resumes = () => {
 
             {/* Resume info */}
             <div className="mt-6 border-t border-gray-100 pt-5">
-              <h3 className="text-xs font-bold text-gray-900">
+              <h3 className="text-xs font-semibold text-gray-900">
                 Resume details
               </h3>
 
@@ -330,21 +422,24 @@ const Resumes = () => {
                 <div className="flex justify-between text-[10px]">
                   <span className="text-gray-400">File</span>
                   <span className="max-w-42.5 truncate font-medium text-gray-700">
-                    Gopal_Mahajan_Resume.pdf
+                    {selectedResumeData?.fileName || "N/A"}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-[10px]">
                   <span className="text-gray-400">Size</span>
                   <span className="font-medium text-gray-700">
-                    1.8 MB
+                    {selectedResumeData?.fileSize
+                      ? (selectedResumeData.fileSize / 1024 / 1024).toFixed(2) +
+                        " MB"
+                      : "N/A"}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-[10px]">
                   <span className="text-gray-400">Experience</span>
                   <span className="font-medium text-gray-700">
-                    2+ years
+                    {selectedResumeData?.experience || "N/A"}
                   </span>
                 </div>
 

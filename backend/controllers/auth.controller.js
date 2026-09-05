@@ -10,7 +10,7 @@ const generateToken = (userId) => {
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
-    }
+    },
   );
 };
 
@@ -95,10 +95,7 @@ const login = async (req, res) => {
       });
     }
 
-    const passwordMatch = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatch) {
       return res.status(401).json({
@@ -133,9 +130,9 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select(
-      "-passwordHash"
-    );
+    console.log("req.user:", req.user);
+    console.log("userId:", req.user.userId);
+    const user = await User.findById(req.user.userId).select("-passwordHash");
 
     if (!user) {
       return res.status(404).json({
@@ -143,6 +140,8 @@ const getMe = async (req, res) => {
         message: "User not found",
       });
     }
+
+    console.log("Found user:", user);
 
     res.json({
       success: true,

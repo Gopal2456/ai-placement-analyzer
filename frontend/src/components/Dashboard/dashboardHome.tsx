@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Plus } from "lucide-react";
+import api from "@/api/axios";
+import React, { useEffect } from "react";
 
 const stats = [
   {
@@ -67,27 +70,66 @@ const recentAnalyses = [
   },
 ];
 
+const now = new Date();
+
+const date = now.toLocaleDateString("en-IN", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
+
+const hour = now.getHours();
+
+const greeting =
+  hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+type ProfileData = {
+  user?: {
+    name?: string;
+  };
+};
+
 const DashboardHome = () => {
+  const [data, setData] = React.useState<ProfileData | null>(null);
+
+  const getProfileData = async () => {
+    try {
+      const response = await api.get("/auth/me");
+      setData(response.data);
+      console.log("Profile data:", response.data);
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    }
+  };
+
+  useEffect(() => {
+    getProfileData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f7f8fa] text-gray-900">
       {/* Dashboard Header */}
       <header className=" border-gray-200 bg-white">
         <div className="flex h-20 items-center justify-between px-6 lg:px-8">
           <div>
-            <p className="text-xs font-medium text-gray-400">
-              Tuesday, August 25
-            </p>
+            <p className="text-xs font-medium text-gray-400">{date}</p>
 
-            <h1 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-gray-950">
-              Good evening, Gopal 👋
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-800">
+              {greeting}, {data?.user?.name?.trim().split(/\s+/)[0] || "User"}{" "}
+              👋
             </h1>
           </div>
 
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-sm font-bold text-white shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-sm font-medium text-white shadow-sm"
           >
-            G
+            {data?.user?.name
+              ?.trim()
+              .split(/\s+/)
+              .map((word) => word[0])
+              .join("")
+              .toUpperCase() || "U"}
           </button>
         </div>
       </header>
@@ -102,7 +144,7 @@ const DashboardHome = () => {
                 Career overview
               </p>
 
-              <h2 className="mt-2 text-xl font-bold tracking-tight text-gray-950">
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-gray-800">
                 Your placement readiness
               </h2>
 
@@ -114,9 +156,11 @@ const DashboardHome = () => {
 
             <Link
               href="/analysis/new"
-              className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gray-950 px-5 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:-translate-y-0.5 hover:bg-black"
+              className="group inline-flex h-9.5 items-center justify-center gap-2 rounded-lg bg-gray-950 px-3 pr-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 hover:bg-black"
             >
-              <span className="text-lg leading-none">+</span>
+              <span className="text-sm leading-none">
+                <Plus className="h-4.5 w-4.5" />
+              </span>
               New analysis
               <span className="transition-transform group-hover:translate-x-1">
                 →
@@ -133,7 +177,7 @@ const DashboardHome = () => {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-3xl font-bold tracking-[-0.04em] text-gray-950">
+                    <p className="text-3xl font-semibold tracking-[-0.04em] text-gray-800">
                       {stat.value}
                     </p>
 
@@ -161,7 +205,7 @@ const DashboardHome = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-950">
+                    <h3 className="text-sm font-semibold text-gray-800">
                       Latest analysis
                     </h3>
 
@@ -190,7 +234,7 @@ const DashboardHome = () => {
                     <div className="absolute -inset-3 rounded-full border-12 border-violet-600 border-b-transparent border-l-transparent rotate-[-42deg]" />
 
                     <div className="text-center">
-                      <p className="text-4xl font-bold tracking-tighter text-gray-950">
+                      <p className="text-4xl font-semibold tracking-tighter text-gray-800">
                         87
                       </p>
 
@@ -258,19 +302,15 @@ const DashboardHome = () => {
                   AI insight
                 </p>
 
-                <h3 className="mt-2 text-xl font-bold tracking-tight">
+                <h3 className="mt-2 text-xl font-semibold tracking-tight">
                   AI recommendation
                 </h3>
 
                 <p className="mt-4 max-w-sm text-xs leading-6 text-gray-400">
                   Strengthen your{" "}
-                  <span className="font-semibold text-gray-200">
-                    Next.js
-                  </span>{" "}
+                  <span className="font-semibold text-gray-200">Next.js</span>{" "}
                   and{" "}
-                  <span className="font-semibold text-gray-200">
-                    GraphQL
-                  </span>{" "}
+                  <span className="font-semibold text-gray-200">GraphQL</span>{" "}
                   knowledge to increase your match score for this role.
                 </p>
 
@@ -301,7 +341,7 @@ const DashboardHome = () => {
 
                 <Link
                   href="/analysis/latest/skills"
-                  className="mt-7 inline-flex h-10 items-center justify-center rounded-lg bg-white px-4 text-xs font-semibold text-gray-950 transition hover:bg-gray-100"
+                  className="mt-7 inline-flex h-10 items-center justify-center rounded-lg bg-white px-4 text-xs font-semibold text-gray-800 transition hover:bg-gray-100"
                 >
                   View skill gaps →
                 </Link>
@@ -315,7 +355,7 @@ const DashboardHome = () => {
             <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-gray-950">
+                  <h3 className="text-sm font-semibold text-gray-800">
                     Recent analyses
                   </h3>
 
@@ -344,7 +384,7 @@ const DashboardHome = () => {
                     }`}
                   >
                     {/* Company icon */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-xs font-bold text-gray-600">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-xs font-semibold text-gray-600">
                       {analysis.role.charAt(0)}
                     </div>
 
@@ -361,7 +401,7 @@ const DashboardHome = () => {
 
                     {/* Score */}
                     <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900">
+                      <p className="text-sm font-semibold text-gray-900">
                         {analysis.score}%
                       </p>
 
@@ -378,9 +418,7 @@ const DashboardHome = () => {
 
             {/* Quick Actions */}
             <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-950">
-                Quick actions
-              </h3>
+              <h3 className="text-sm font-semibold text-gray-800">Quick actions</h3>
 
               <p className="mt-1 text-xs text-gray-400">
                 Continue where you left off

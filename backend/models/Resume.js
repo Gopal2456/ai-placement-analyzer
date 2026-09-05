@@ -37,10 +37,18 @@ const resumeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    experience: {
+      type: String,
+      default: "Fresher",
+    },
+    role: {
+      type: String,
+      default: "Not specified",
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Resume", resumeSchema);

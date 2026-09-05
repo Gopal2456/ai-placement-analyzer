@@ -1,18 +1,10 @@
 const fs = require("fs");
 const Resume = require("../models/Resume");
 const { extractTextFromPDF } = require("../services/pdf.service");
-// const { extractSkills } = require("../services/skill.service");
-const { extractSkillsWithAI } = require("../services/ai.service");
+const { extractResumeDataWithAI } = require("../services/ai.service");
 
 const uploadResume = async (req, res) => {
   try {
-    console.log("================================");
-    console.log("UPLOAD REQUEST RECEIVED");
-    console.log("================================");
-
-    console.log("User:", req.user);
-    console.log("File:", req.file);
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -20,15 +12,9 @@ const uploadResume = async (req, res) => {
       });
     }
 
-    console.log("Extracting PDF text...");
-
     const extractedText = await extractTextFromPDF(req.file.path);
 
-    console.log("PDF extraction completed");
-
-    const skills = await extractSkillsWithAI(extractedText);
-
-    console.log("Skills found:", skills);
+    const resumeData = await extractResumeDataWithAI(extractedText);
 
     const resume = await Resume.create({
       userId: req.user.userId,
@@ -37,10 +23,10 @@ const uploadResume = async (req, res) => {
       fileSize: req.file.size,
       mimeType: "application/pdf",
       extractedText,
-      skills,
+      skills: resumeData.skills,
+      experience: resumeData.experience || "Fresher",
+      role: resumeData.role || "Not specified",
     });
-
-    console.log("Resume saved:", resume._id);
 
     return res.status(201).json({
       success: true,
@@ -51,6 +37,8 @@ const uploadResume = async (req, res) => {
         fileSize: resume.fileSize,
         mimeType: resume.mimeType,
         skills: resume.skills,
+        experience: resume.experience,
+        role: resume.role,
         createdAt: resume.createdAt,
       },
     });
