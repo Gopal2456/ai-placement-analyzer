@@ -1,8 +1,18 @@
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 });
+
+const MODEL = "openai/gpt-oss-120b";
+
+const cleanJsonResponse = (output) => {
+  return output
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+};
 
 const extractResumeDataWithAI = async (resumeText) => {
   try {
@@ -14,11 +24,14 @@ const extractResumeDataWithAI = async (resumeText) => {
       You are a resume information extraction system.
 
       Analyze the resume below and extract:
+
       1. Technical/professional skills
       2. Total professional work experience
       3. The candidate's most relevant/current professional role
 
-      Return ONLY a valid JSON object in exactly this format:
+      Return ONLY a valid JSON object.
+
+      Use exactly this format:
 
       {
         "skills": [],
@@ -27,6 +40,7 @@ const extractResumeDataWithAI = async (resumeText) => {
       }
 
       Rules for skills:
+
       - Include programming languages
       - Include frameworks
       - Include libraries
@@ -44,6 +58,7 @@ const extractResumeDataWithAI = async (resumeText) => {
       - Do not include generic qualities like "hardworking" or "team player"
 
       Rules for experience:
+
       - Calculate the candidate's total professional work experience.
       - Use explicitly mentioned total experience if available.
       - Otherwise calculate it from employment dates.
@@ -57,6 +72,7 @@ const extractResumeDataWithAI = async (resumeText) => {
       - If the candidate has no professional experience, return "Fresher".
 
       Rules for role:
+
       - Extract the candidate's most relevant professional role.
       - Prefer the current/latest job title if available.
       - If there is no current job, use the most recent relevant job title.
@@ -87,24 +103,31 @@ const extractResumeDataWithAI = async (resumeText) => {
       }
 
       Resume:
+
       ${resumeText}
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0,
     });
 
-    const output = response.text.trim();
+    const output =
+      response.choices[0]?.message?.content?.trim();
 
-    console.log("Gemini response:", output);
+    if (!output) {
+      throw new Error("AI returned an empty response");
+    }
 
-    // Remove markdown code fences
-    const cleanedOutput = output
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
+    // console.log("Groq response:", output);
+
+    const cleanedOutput = cleanJsonResponse(output);
 
     const resumeData = JSON.parse(cleanedOutput);
 
@@ -113,7 +136,7 @@ const extractResumeDataWithAI = async (resumeText) => {
       typeof resumeData !== "object" ||
       !Array.isArray(resumeData.skills)
     ) {
-      throw new Error("Gemini returned invalid resume data format");
+      throw new Error("AI returned invalid resume data format");
     }
 
     const skills = [
@@ -121,17 +144,19 @@ const extractResumeDataWithAI = async (resumeText) => {
         resumeData.skills
           .filter((skill) => typeof skill === "string")
           .map((skill) => skill.trim())
-          .filter(Boolean),
+          .filter(Boolean)
       ),
     ];
 
     const experience =
-      typeof resumeData.experience === "string" && resumeData.experience.trim()
+      typeof resumeData.experience === "string" &&
+      resumeData.experience.trim()
         ? resumeData.experience.trim()
         : "Fresher";
 
     const role =
-      typeof resumeData.role === "string" && resumeData.role.trim()
+      typeof resumeData.role === "string" &&
+      resumeData.role.trim()
         ? resumeData.role.trim()
         : "Not specified";
 
@@ -141,9 +166,11 @@ const extractResumeDataWithAI = async (resumeText) => {
       role,
     };
   } catch (error) {
-    console.error("Gemini resume extraction error:", error);
+    console.error("Groq resume extraction error:", error);
 
-    throw new Error(`AI resume extraction failed: ${error.message}`);
+    throw new Error(
+      `AI resume extraction failed: ${error.message}`
+    );
   }
 };
 
@@ -159,9 +186,11 @@ const analyzeResumeWithAI = async (resumeText, skills) => {
       Analyze the following resume carefully.
 
       Resume Skills:
+
       ${JSON.stringify(skills)}
 
       Resume:
+
       ${resumeText}
 
       Return ONLY valid JSON.
@@ -197,26 +226,44 @@ const analyzeResumeWithAI = async (resumeText, skills) => {
       - Do not invent experience, education, projects, or skills that are not present in the resume.
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0,
     });
 
-    const output = response.text.trim();
+    const output =
+      response.choices[0]?.message?.content?.trim();
 
-    const cleanedOutput = output
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
+    if (!output) {
+      throw new Error("AI returned an empty response");
+    }
+
+    // console.log("Groq analysis response:", output);
+
+    const cleanedOutput = cleanJsonResponse(output);
 
     const analysis = JSON.parse(cleanedOutput);
+
+    if (
+      !analysis ||
+      typeof analysis !== "object"
+    ) {
+      throw new Error("AI returned invalid analysis format");
+    }
 
     return analysis;
   } catch (error) {
     console.error("Resume AI analysis error:", error);
 
-    throw new Error(`Resume analysis failed: ${error.message}`);
+    throw new Error(
+      `Resume analysis failed: ${error.message}`
+    );
   }
 };
 

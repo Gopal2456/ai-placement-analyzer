@@ -10,10 +10,33 @@ const Resumes = () => {
   const [selectedResume, setSelectedResume] = useState<string | null>(null);
   const [resumes, setResumes] = useState<any[]>([]);
   const [count, setCount] = useState(0);
+  const [profileReadiness, setProfileReadiness] = useState(0);
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!selectedResume) {
+      setProfileReadiness(0);
+      return;
+    }
+
+    const fetchAnalysis = async () => {
+      try {
+        const response = await api.get(`/analysis/${selectedResume}`);
+
+        setProfileReadiness(response.data.analysis?.overallScore || 0);
+      } catch (error: any) {
+        console.error("Failed to fetch profile readiness:", error);
+
+        // No analysis exists yet
+        setProfileReadiness(0);
+      }
+    };
+
+    fetchAnalysis();
+  }, [selectedResume]);
 
   const fetchResumes = async () => {
     try {
@@ -354,12 +377,12 @@ const Resumes = () => {
                 </h2>
               </div>
 
-              <button
+              {/* <button
                 type="button"
                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-[10px] font-semibold text-gray-500 hover:bg-gray-50"
               >
                 Edit
-              </button>
+              </button> */}
             </div>
 
             {/* Profile readiness */}
@@ -370,11 +393,11 @@ const Resumes = () => {
                     Profile readiness
                   </p>
 
-                  <p className="mt-1 text-2xl font-semibold">82%</p>
+                  <p className="mt-1 text-2xl font-semibold">{profileReadiness}%</p>
                 </div>
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500/30 border-t-violet-500 text-[10px] font-semibold">
-                  82
+                  {profileReadiness}
                 </div>
               </div>
 
@@ -453,20 +476,24 @@ const Resumes = () => {
             </div>
 
             {/* Actions */}
-            <div className="mt-6 grid grid-cols-2 gap-2">
+            <div className="mt-6">
               <Link
-                href="/analysis/new"
-                className="flex h-10 items-center justify-center rounded-lg bg-gray-950 text-[10px] font-semibold text-white transition hover:bg-black"
+                href={
+                  selectedResume
+                    ? `/analysis?resumeId=${selectedResume}`
+                    : "/analysis"
+                }
+                className="flex h-10 items-center justify-center rounded-lg bg-gray-950 text-[11px] font-semibold text-white transition hover:bg-black"
               >
                 Analyze resume
               </Link>
 
-              <button
+              {/* <button
                 type="button"
                 className="flex h-10 items-center justify-center rounded-lg border border-gray-200 text-[10px] font-semibold text-gray-600 transition hover:bg-gray-50"
               >
                 Download
-              </button>
+              </button> */}
             </div>
           </aside>
         </div>
