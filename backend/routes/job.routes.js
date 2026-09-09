@@ -1,12 +1,17 @@
 const express = require("express");
 
+const {
+  createJob,
+  getJobs,
+  importJobs,
+} = require("../controllers/job.controller");
+
+const auth = require("../middleware/auth");
+
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Job API working",
-  });
-});
+router.post("/", auth, createJob);
+router.get("/", auth, getJobs);
+router.get("/import", auth, importJobs);
 
 module.exports = router;
