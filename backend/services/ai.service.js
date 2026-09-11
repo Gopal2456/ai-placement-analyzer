@@ -118,8 +118,7 @@ const extractResumeDataWithAI = async (resumeText) => {
       temperature: 0,
     });
 
-    const output =
-      response.choices[0]?.message?.content?.trim();
+    const output = response.choices[0]?.message?.content?.trim();
 
     if (!output) {
       throw new Error("AI returned an empty response");
@@ -144,19 +143,17 @@ const extractResumeDataWithAI = async (resumeText) => {
         resumeData.skills
           .filter((skill) => typeof skill === "string")
           .map((skill) => skill.trim())
-          .filter(Boolean)
+          .filter(Boolean),
       ),
     ];
 
     const experience =
-      typeof resumeData.experience === "string" &&
-      resumeData.experience.trim()
+      typeof resumeData.experience === "string" && resumeData.experience.trim()
         ? resumeData.experience.trim()
         : "Fresher";
 
     const role =
-      typeof resumeData.role === "string" &&
-      resumeData.role.trim()
+      typeof resumeData.role === "string" && resumeData.role.trim()
         ? resumeData.role.trim()
         : "Not specified";
 
@@ -168,9 +165,7 @@ const extractResumeDataWithAI = async (resumeText) => {
   } catch (error) {
     console.error("Groq resume extraction error:", error);
 
-    throw new Error(
-      `AI resume extraction failed: ${error.message}`
-    );
+    throw new Error(`AI resume extraction failed: ${error.message}`);
   }
 };
 
@@ -237,8 +232,7 @@ const analyzeResumeWithAI = async (resumeText, skills) => {
       temperature: 0,
     });
 
-    const output =
-      response.choices[0]?.message?.content?.trim();
+    const output = response.choices[0]?.message?.content?.trim();
 
     if (!output) {
       throw new Error("AI returned an empty response");
@@ -250,10 +244,7 @@ const analyzeResumeWithAI = async (resumeText, skills) => {
 
     const analysis = JSON.parse(cleanedOutput);
 
-    if (
-      !analysis ||
-      typeof analysis !== "object"
-    ) {
+    if (!analysis || typeof analysis !== "object") {
       throw new Error("AI returned invalid analysis format");
     }
 
@@ -261,13 +252,123 @@ const analyzeResumeWithAI = async (resumeText, skills) => {
   } catch (error) {
     console.error("Resume AI analysis error:", error);
 
-    throw new Error(
-      `Resume analysis failed: ${error.message}`
-    );
+    throw new Error(`Resume analysis failed: ${error.message}`);
+  }
+};
+
+const analyzeJobMatchWithAI = async ({
+  resumeText,
+  jobTitle,
+  company,
+  jobDescription,
+  matchScore,
+  matchedSkills,
+  missingSkills,
+}) => {
+  try {
+    if (!resumeText || !resumeText.trim()) {
+      throw new Error("Resume text is empty");
+    }
+
+    if (!jobDescription || !jobDescription.trim()) {
+      throw new Error("Job description is empty");
+    }
+
+    const prompt = `
+      You are an AI career advisor.
+
+      Analyze how well this candidate matches the job.
+
+      IMPORTANT:
+      - Do not invent experience.
+      - Do not invent skills.
+      - Do not change the provided match score.
+      - The match score is calculated separately using deterministic logic.
+      - Base your response only on the resume and job description.
+
+      JOB TITLE:
+      ${jobTitle}
+
+      COMPANY:
+      ${company}
+
+      JOB DESCRIPTION:
+      ${jobDescription}
+
+      RESUME:
+      ${resumeText}
+
+      MATCH SCORE:
+      ${matchScore}
+
+      MATCHED SKILLS:
+      ${JSON.stringify(matchedSkills)}
+
+      MISSING SKILLS:
+      ${JSON.stringify(missingSkills)}
+
+      Return ONLY valid JSON.
+
+      Use exactly this structure:
+
+      {
+        "strengths": [
+          "string"
+        ],
+        "weaknesses": [
+          "string"
+        ],
+        "recommendations": [
+          "string"
+        ],
+        "summary": "string"
+      }
+
+      Rules:
+      - strengths: 3 to 5 items
+      - weaknesses: 2 to 4 items
+      - recommendations: 3 to 5 practical items
+      - summary: 2 to 4 sentences
+      - Do not include markdown
+      - Do not include code fences
+    `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0,
+    });
+
+    const output = response.choices[0]?.message?.content?.trim();
+
+    if (!output) {
+      throw new Error("AI returned an empty response");
+    }
+
+    console.log("Groq job analysis response:", output);
+
+    const cleanedOutput = cleanJsonResponse(output);
+
+    const result = JSON.parse(cleanedOutput);
+
+    if (!result || typeof result !== "object") {
+      throw new Error("AI returned invalid job analysis format");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("AI job analysis error:", error);
+    throw new Error(`Job analysis failed: ${error.message}`);
   }
 };
 
 module.exports = {
   extractResumeDataWithAI,
   analyzeResumeWithAI,
+  analyzeJobMatchWithAI,
 };
