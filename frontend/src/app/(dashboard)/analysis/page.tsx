@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import api from "@/api/axios";
 
-const AnalysisPage = () => {
+const AnalysisContent  = () => {
   const searchParams = useSearchParams();
   const resumeId = searchParams.get("resumeId");
 
@@ -282,6 +282,29 @@ const ScoreCard = ({ title, score }: { title: string; score: number }) => {
         />
       </div>
     </div>
+  );
+};
+
+const AnalysisPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
+          <div className="flex w-full max-w-md flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <div className="absolute h-16 w-16 animate-spin rounded-full border-4 border-gray-100 border-t-violet-600" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" />
+            </div>
+
+            <p className="mt-6 text-sm font-semibold text-gray-800">
+              Loading analysis...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <AnalysisContent />
+    </Suspense>
   );
 };
 
