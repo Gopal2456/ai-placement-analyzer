@@ -367,8 +367,91 @@ const analyzeJobMatchWithAI = async ({
   }
 };
 
+const generateInterviewQuestionsWithAI = async ({
+  resumeText,
+  jobDescription = "",
+}) => {
+  try {
+    if (!resumeText || !resumeText.trim()) {
+      throw new Error("Resume text is empty");
+    }
+
+    const prompt = `
+    You are an expert technical interviewer.
+
+    Generate interview questions based on the candidate's resume
+    and the target job description.
+
+    Candidate Resume:
+    ${resumeText}
+
+    Job Description:
+    ${jobDescription || "No specific job description provided."}
+
+    Generate exactly 10 interview questions.
+
+    Return ONLY valid JSON in this format:
+
+    {
+      "questions": [
+        {
+          "question": "Question text",
+          "type": "technical",
+          "difficulty": "medium"
+        }
+      ]
+    }
+
+    Rules:
+
+    - Generate exactly 10 questions.
+    - Mix technical, behavioral, project, and general questions.
+    - Questions must be relevant to the candidate's actual resume.
+    - If a job description is provided, prioritize skills required by the job.
+    - Do not invent technologies that are not present in the resume or job description.
+    - difficulty must be one of: easy, medium, hard.
+    - type must be one of: technical, behavioral, project, general.
+    - Return JSON only.
+    `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.4,
+    });
+
+    const content = response.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("AI returned an empty response");
+    }
+
+    const cleaned = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    if (!Array.isArray(parsed.questions)) {
+      throw new Error("Invalid interview questions format");
+    }
+
+    return parsed.questions;
+  } catch (error) {
+    console.error("Interview generation error:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   extractResumeDataWithAI,
   analyzeResumeWithAI,
   analyzeJobMatchWithAI,
+  generateInterviewQuestionsWithAI,
 };
