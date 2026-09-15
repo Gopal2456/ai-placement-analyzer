@@ -2,11 +2,12 @@ const express = require("express");
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Interview API working",
-  });
-});
+const {
+  generateInterview,
+} = require("../controllers/interview.controller");
+
+const auth = require("../middleware/auth");
+
+router.post("/generate", auth, generateInterview);
 
 module.exports = router;
