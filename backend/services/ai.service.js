@@ -367,8 +367,333 @@ const analyzeJobMatchWithAI = async ({
   }
 };
 
+const generateInterviewQuestionsWithAI = async ({
+  resumeText,
+  jobDescription = "",
+}) => {
+  try {
+    if (!resumeText || !resumeText.trim()) {
+      throw new Error("Resume text is empty");
+    }
+
+    const prompt = `
+    You are an expert technical interviewer.
+
+    Generate interview questions based on the candidate's resume
+    and the target job description.
+
+    Candidate Resume:
+    ${resumeText}
+
+    Job Description:
+    ${jobDescription || "No specific job description provided."}
+
+    Generate exactly 10 interview questions.
+
+    Return ONLY valid JSON in this format:
+
+    {
+      "questions": [
+        {
+          "question": "Question text",
+          "type": "technical",
+          "difficulty": "medium"
+        }
+      ]
+    }
+
+    Rules:
+
+    - Generate exactly 10 questions.
+    - Mix technical, behavioral, project, and general questions.
+    - Questions must be relevant to the candidate's actual resume.
+    - If a job description is provided, prioritize skills required by the job.
+    - Do not invent technologies that are not present in the resume or job description.
+    - difficulty must be one of: easy, medium, hard.
+    - type must be one of: technical, behavioral, project, general.
+    - Return JSON only.
+    `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.4,
+    });
+
+    const content = response.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("AI returned an empty response");
+    }
+
+    const cleaned = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    if (!Array.isArray(parsed.questions)) {
+      throw new Error("Invalid interview questions format");
+    }
+
+    return parsed.questions;
+  } catch (error) {
+    console.error("Interview generation error:", error);
+    throw error;
+  }
+};
+
+const evaluateInterviewAnswerWithAI = async ({
+  question,
+  answer,
+  resumeText,
+  jobDescription = "",
+}) => {
+  try {
+    if (!question || !question.trim()) {
+      throw new Error("Interview question is required");
+    }
+
+    if (!answer || !answer.trim()) {
+      throw new Error("Interview answer is required");
+    }
+
+    const prompt = `
+      You are an expert technical interviewer evaluating a candidate's interview answer.
+
+      Candidate Resume:
+      ${resumeText || "No resume provided."}
+
+      Job Description:
+      ${jobDescription || "No specific job description provided."}
+
+      Interview Question:
+      ${question}
+
+      Candidate's Answer:
+      ${answer}
+
+      Evaluate the candidate's answer objectively.
+
+      Return ONLY valid JSON in exactly this format:
+
+      {
+        "score": 8,
+        "feedback": "Clear explanation of the answer and overall evaluation.",
+        "strengths": [
+          "Strength 1",
+          "Strength 2"
+        ],
+        "improvements": [
+          "Improvement 1",
+          "Improvement 2"
+        ],
+        "betterAnswer": "A stronger example answer the candidate could give."
+      }
+
+      Rules:
+
+      - score must be a number from 0 to 10.
+      - Evaluate the answer based on correctness, relevance, clarity, depth, and practical understanding.
+      - Do not give a high score simply because the answer is long.
+      - Do not penalize concise answers if they are technically correct and complete.
+      - Do not invent experience or technologies for the candidate.
+      - Use the resume only as supporting context.
+      - For behavioral questions, evaluate the answer based on clarity, ownership, reasoning, and concrete examples.
+      - For technical questions, evaluate technical correctness and understanding.
+      - For project questions, evaluate whether the answer demonstrates actual understanding of the project.
+      - feedback should be concise but useful.
+      - strengths should contain 1 to 3 items.
+      - improvements should contain 1 to 3 items.
+      - betterAnswer should provide a realistic improved answer.
+      - Return JSON only.
+      `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+    });
+
+    const content = response.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("AI returned an empty response");
+    }
+
+    const cleaned = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    if (
+      typeof parsed.score !== "number" ||
+      parsed.score < 0 ||
+      parsed.score > 10
+    ) {
+      throw new Error("Invalid interview score returned by AI");
+    }
+
+    return {
+      score: parsed.score,
+      feedback: parsed.feedback || "",
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+      improvements: Array.isArray(parsed.improvements)
+        ? parsed.improvements
+        : [],
+      betterAnswer: parsed.betterAnswer || "",
+    };
+  } catch (error) {
+    console.error("Interview answer evaluation error:", error);
+    throw error;
+  }
+};
+
+const evaluateInterviewAnswersWithAI = async ({
+  questions,
+  resumeText = "",
+  jobDescription = "",
+}) => {
+  try {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error("Questions are required");
+    }
+
+    const questionsText = questions
+      .map(
+        (item, index) => `
+          Question ${index + 1}
+          Question ID: ${item.questionId}
+          Type: ${item.type}
+          Difficulty: ${item.difficulty}
+          Question: ${item.question}
+          Candidate Answer: ${item.answer}
+          `,
+                )
+                .join("\n");
+
+              const prompt = `
+          You are an expert technical interviewer.
+
+          Evaluate the candidate's answers to the interview questions below.
+
+          Candidate Resume:
+          ${resumeText || "Not provided."}
+
+          Job Description:
+          ${jobDescription || "Not provided."}
+
+          ${questionsText}
+
+          Return ONLY valid JSON in exactly this format:
+
+          {
+            "evaluations": [
+              {
+                "questionId": "question id",
+                "score": 8,
+                "feedback": "Short and useful evaluation.",
+                "strengths": [
+                  "Strength 1"
+                ],
+                "improvements": [
+                  "Improvement 1"
+                ],
+                "betterAnswer": "A concise improved answer."
+              }
+            ]
+          }
+
+          Rules:
+
+          - Return exactly one evaluation for every question.
+          - Keep the same questionId provided above.
+          - score must be a number from 0 to 10.
+          - Evaluate correctness, relevance, clarity, depth, and practical understanding.
+          - Do not give a high score simply because an answer is long.
+          - Do not invent candidate experience.
+          - Technical questions: focus on technical correctness.
+          - Project questions: focus on actual project understanding.
+          - Behavioral questions: focus on clarity, ownership, reasoning, and examples.
+          - General questions: focus on relevance and communication.
+          - strengths: 1 to 3 concise points.
+          - improvements: 1 to 3 concise points.
+          - betterAnswer should be realistic and concise.
+          - Do not include markdown.
+          - Return JSON only.
+          `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+    });
+
+    const content = response.choices[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("AI returned an empty response");
+    }
+
+    const cleaned = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    if (!Array.isArray(parsed.evaluations)) {
+      throw new Error("Invalid interview evaluation format");
+    }
+
+    if (parsed.evaluations.length !== questions.length) {
+      throw new Error(
+        `AI returned ${parsed.evaluations.length} evaluations for ${questions.length} questions`,
+      );
+    }
+
+    return parsed.evaluations.map((evaluation) => ({
+      questionId: evaluation.questionId,
+      score: Math.max(0, Math.min(10, Number(evaluation.score))),
+      feedback: evaluation.feedback || "",
+      strengths: Array.isArray(evaluation.strengths)
+        ? evaluation.strengths
+        : [],
+      improvements: Array.isArray(evaluation.improvements)
+        ? evaluation.improvements
+        : [],
+      betterAnswer: evaluation.betterAnswer || "",
+    }));
+  } catch (error) {
+    console.error("Interview answers evaluation error:", error);
+
+    throw error;
+  }
+};
+
 module.exports = {
   extractResumeDataWithAI,
   analyzeResumeWithAI,
   analyzeJobMatchWithAI,
+  generateInterviewQuestionsWithAI,
+  evaluateInterviewAnswerWithAI,
+  evaluateInterviewAnswersWithAI,
 };
