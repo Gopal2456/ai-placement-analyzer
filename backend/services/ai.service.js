@@ -582,10 +582,10 @@ const evaluateInterviewAnswersWithAI = async ({
           Question: ${item.question}
           Candidate Answer: ${item.answer}
           `,
-                )
-                .join("\n");
+      )
+      .join("\n");
 
-              const prompt = `
+    const prompt = `
           You are an expert technical interviewer.
 
           Evaluate the candidate's answers to the interview questions below.
@@ -690,6 +690,7 @@ const evaluateInterviewAnswersWithAI = async ({
 };
 
 module.exports = {
+  groq,
   extractResumeDataWithAI,
   analyzeResumeWithAI,
   analyzeJobMatchWithAI,

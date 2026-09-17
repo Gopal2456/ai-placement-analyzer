@@ -2,6 +2,8 @@ const fs = require("fs");
 const Resume = require("../models/Resume");
 const { extractTextFromPDF } = require("../services/pdf.service");
 const { extractResumeDataWithAI } = require("../services/ai.service");
+const { chunkText } = require("../services/chunk.service");
+const { createResumeEmbeddings } = require("../services/embedding.service");
 
 const uploadResume = async (req, res) => {
   try {
@@ -12,10 +14,13 @@ const uploadResume = async (req, res) => {
       });
     }
 
+    // 1. Extract text from PDF
     const extractedText = await extractTextFromPDF(req.file.path);
 
+    // 2. Extract structured resume data using AI
     const resumeData = await extractResumeDataWithAI(extractedText);
 
+    // 3. Save resume to MongoDB
     const resume = await Resume.create({
       userId: req.user.userId,
       fileName: req.file.originalname,
@@ -28,9 +33,22 @@ const uploadResume = async (req, res) => {
       role: resumeData.role || "Not specified",
     });
 
+    // 4. Split resume text into chunks
+    const chunks = chunkText(extractedText);
+
+    console.log(`Resume split into ${chunks.length} chunks`);
+
+    // 5. Generate and store embeddings
+    await createResumeEmbeddings({
+      userId: req.user.userId,
+      resumeId: resume._id,
+      chunks,
+    });
+
+    // 6. Return response
     return res.status(201).json({
       success: true,
-      message: "Resume uploaded successfully",
+      message: "Resume uploaded and indexed successfully",
       resume: {
         id: resume._id,
         fileName: resume.fileName,
@@ -40,6 +58,10 @@ const uploadResume = async (req, res) => {
         experience: resume.experience,
         role: resume.role,
         createdAt: resume.createdAt,
+      },
+      rag: {
+        indexed: true,
+        chunks: chunks.length,
       },
     });
   } catch (error) {

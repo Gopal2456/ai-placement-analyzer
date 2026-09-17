@@ -10,6 +10,7 @@ const resumeRoutes = require("./routes/resume.routes");
 const jobRoutes = require("./routes/job.routes");
 const analysisRoutes = require("./routes/analysis.routes");
 const interviewRoutes = require("./routes/interview.routes");
+const ragRoutes = require("./routes/rag.routes");
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/resumes", resumeRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/interview", interviewRoutes);
 app.use("/api/analysis", analysisRoutes);
+app.use("/api/rag", ragRoutes);
 
 /* -------------------- 404 -------------------- */
 
