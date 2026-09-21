@@ -3,44 +3,6 @@ const { extractSkills } = require("../services/skill.service");
 const { searchAdzunaJobs } = require("../services/adzuna.service");
 const { generateEmbedding } = require("../services/embedding.service");
 
-// const createJob = async (req, res) => {
-//   try {
-//     const { title, company, description } = req.body;
-
-//     if (!title || !company || !description) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Title, company and description are required",
-//       });
-//     }
-
-//     const skills = extractSkills(description);
-
-//     const job = await Job.create({
-//       userId: req.user.userId,
-//       title,
-//       company,
-//       description,
-//       skills,
-//       source: "manual",
-//     });
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Job description created successfully",
-//       job,
-//     });
-//   } catch (error) {
-//     console.error("Create job error:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to create job",
-//       error: error.message,
-//     });
-//   }
-// };
-
 const createJob = async (req, res) => {
   try {
     const { title, company, description } = req.body;
