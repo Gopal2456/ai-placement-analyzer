@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 import api from "@/api/axios";
 
@@ -32,10 +27,18 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [token, setToken] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
     return localStorage.getItem("token");
   });
 
   const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
     const storedUser = localStorage.getItem("user");
 
     if (!storedUser) {
