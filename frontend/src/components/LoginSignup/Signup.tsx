@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { toast } from "react-toastify";
 import api from "@/api/axios";
+import router from "next/router";
+import { isAxiosError } from "axios";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,12 +38,16 @@ const Signup = () => {
       toast.success(response.data.message || "Account created successfully!");
 
       window.setTimeout(() => {
-        window.location.href = "/login";
+        router.push("/login");
       }, 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Registration error:", error);
 
-      toast.error(error.response?.data?.message || "Failed to create account");
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Failed to create account");
+      } else {
+        toast.error("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }

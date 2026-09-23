@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
+import router from "next/router";
+import { isAxiosError } from "axios";
 
 const Login = () => {
   const { login } = useAuth();
@@ -22,11 +24,15 @@ const Login = () => {
 
       toast.success("Login successful!");
 
-      window.location.href = "/dashboard";
-    } catch (error: any) {
+      router.push("/dashboard");
+    } catch (error: unknown) {
       console.error("Login error:", error);
 
-      toast.error(error.response?.data?.message || "Invalid email or password");
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data?.message || "Invalid email or password");
+      } else {
+        toast.error("An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -173,7 +179,7 @@ const Login = () => {
 
             {/* Register */}
             <p className="mt-8 text-center text-sm text-gray-500">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
                 className="font-semibold text-violet-600 transition hover:text-violet-700"
