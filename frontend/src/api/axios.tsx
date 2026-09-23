@@ -1,4 +1,5 @@
 import axios from "axios";
+import router from "next/router";
 
 console.log(
   "NEXT_PUBLIC_API_URL:",
@@ -30,7 +31,7 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
 
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        router.push("/login");
       }
     }
 

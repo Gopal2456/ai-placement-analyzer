@@ -2,20 +2,40 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { isAxiosError } from "axios";
 import api from "@/api/axios";
 
-const AnalysisContent  = () => {
+interface Analysis {
+  overallScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  projectsScore: number;
+  educationScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  missingSkills: string[];
+  suggestions: string[];
+  summary: string;
+}
+
+interface AnalysisResponse {
+  analysis: Analysis;
+}
+
+interface ApiErrorResponse {
+  message?: string;
+}
+
+const AnalysisContent = () => {
   const searchParams = useSearchParams();
   const resumeId = searchParams.get("resumeId");
 
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!resumeId) {
-      setError("No resume selected.");
-      setLoading(false);
       return;
     }
 
@@ -24,33 +44,42 @@ const AnalysisContent  = () => {
         setLoading(true);
         setError("");
 
-        const response = await api.get(`/analysis/${resumeId}`);
+        const response = await api.get<AnalysisResponse>(
+          `/analysis/${resumeId}`,
+        );
 
         setAnalysis(response.data.analysis);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Fetch analysis error:", error);
 
-        // If analysis doesn't exist yet, create it
-        if (error?.response?.status === 404) {
+        if (
+          isAxiosError<ApiErrorResponse>(error) &&
+          error.response?.status === 404
+        ) {
           try {
-            const response = await api.post("/analysis", {
+            const response = await api.post<AnalysisResponse>("/analysis", {
               resumeId,
             });
 
             setAnalysis(response.data.analysis);
-          } catch (analysisError: any) {
+          } catch (analysisError: unknown) {
             console.error("Create analysis error:", analysisError);
 
-            setError(
-              analysisError?.response?.data?.message ||
-                "Failed to analyze resume.",
-            );
+            if (isAxiosError<ApiErrorResponse>(analysisError)) {
+              setError(
+                analysisError.response?.data?.message ||
+                  "Failed to analyze resume.",
+              );
+            } else {
+              setError("Failed to analyze resume.");
+            }
           }
-        } else {
+        } else if (isAxiosError<ApiErrorResponse>(error)) {
           setError(
-            error?.response?.data?.message ||
-              "Failed to fetch resume analysis.",
+            error.response?.data?.message || "Failed to fetch resume analysis.",
           );
+        } else {
+          setError("Failed to fetch resume analysis.");
         }
       } finally {
         setLoading(false);
@@ -59,6 +88,88 @@ const AnalysisContent  = () => {
 
     fetchAnalysis();
   }, [resumeId]);
+
+  if (!resumeId) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
+        <div className="flex w-full max-w-md flex-col items-center rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 text-lg font-semibold text-red-600">
+              !
+            </div>
+          </div>
+
+          <h2 className="mt-5 text-base font-semibold text-gray-800">
+            No resume selected
+          </h2>
+
+          <p className="mt-2 text-xs leading-5 text-gray-400">
+            Please select a resume to view its analysis.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // useEffect(() => {
+  //   if (!resumeId) {
+  //     setError("No resume selected.");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   const fetchAnalysis = async () => {
+  //     try {
+  //       setLoading(true);
+  //       setError("");
+
+  //       const response = await api.get<AnalysisResponse>(
+  //         `/analysis/${resumeId}`,
+  //       );
+
+  //       setAnalysis(response.data.analysis);
+  //     } catch (error: unknown) {
+  //       console.error("Fetch analysis error:", error);
+
+  //       if (
+  //         isAxiosError<ApiErrorResponse>(error) &&
+  //         error.response?.status === 404
+  //       ) {
+  //         try {
+  //           const response = await api.post<AnalysisResponse>("/analysis", {
+  //             resumeId,
+  //           });
+
+  //           setAnalysis(response.data.analysis);
+  //         } catch (analysisError: unknown) {
+  //           console.error("Create analysis error:", analysisError);
+
+  //           if (isAxiosError<ApiErrorResponse>(analysisError)) {
+  //             setError(
+  //               analysisError.response?.data?.message ||
+  //                 "Failed to analyze resume.",
+  //             );
+  //           } else {
+  //             setError("Failed to analyze resume.");
+  //           }
+  //         }
+  //       } else {
+  //         if (isAxiosError<ApiErrorResponse>(error)) {
+  //           setError(
+  //             error.response?.data?.message ||
+  //               "Failed to fetch resume analysis.",
+  //           );
+  //         } else {
+  //           setError("Failed to fetch resume analysis.");
+  //         }
+  //       }
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchAnalysis();
+  // }, [resumeId]);
 
   if (loading) {
     return (

@@ -92,17 +92,17 @@ type ProfileData = {
 const DashboardHome = () => {
   const [data, setData] = React.useState<ProfileData | null>(null);
 
-  const getProfileData = async () => {
-    try {
-      const response = await api.get("/auth/me");
-      setData(response.data);
-      console.log("Profile data:", response.data);
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-    }
-  };
-
   useEffect(() => {
+    const getProfileData = async () => {
+      try {
+        const response = await api.get("/auth/me");
+        setData(response.data);
+        console.log("Profile data:", response.data);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+      }
+    };
+
     getProfileData();
   }, []);
 
@@ -418,7 +418,9 @@ const DashboardHome = () => {
 
             {/* Quick Actions */}
             <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-800">Quick actions</h3>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Quick actions
+              </h3>
 
               <p className="mt-1 text-xs text-gray-400">
                 Continue where you left off

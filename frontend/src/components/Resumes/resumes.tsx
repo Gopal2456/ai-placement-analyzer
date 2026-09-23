@@ -5,20 +5,34 @@ import { useEffect, useRef, useState } from "react";
 import { ListCheck, SquareText, Plus } from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "react-toastify";
+import { isAxiosError } from "axios";
+
+interface Resume {
+  _id: string;
+  fileName: string;
+  role: string;
+  skills: string[];
+  experience: string;
+  createdAt: string;
+  status: string;
+  primary?: boolean;
+  fileSize?: number;
+}
 
 const Resumes = () => {
   const [selectedResume, setSelectedResume] = useState<string | null>(null);
-  const [resumes, setResumes] = useState<any[]>([]);
+  const [resumes, setResumes] = useState<Resume[]>([]);
   const [count, setCount] = useState(0);
   const [profileReadiness, setProfileReadiness] = useState(0);
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [refreshResumes, setRefreshResumes] = useState(0);
 
   useEffect(() => {
     if (!selectedResume) {
-      setProfileReadiness(0);
+      // setProfileReadiness(0);
       return;
     }
 
@@ -27,8 +41,15 @@ const Resumes = () => {
         const response = await api.get(`/analysis/${selectedResume}`);
 
         setProfileReadiness(response.data.analysis?.overallScore || 0);
-      } catch (error: any) {
-        console.error("Failed to fetch profile readiness:", error);
+      } catch (error: unknown) {
+        if (isAxiosError(error)) {
+          console.error(
+            "Failed to fetch profile readiness:",
+            error.response?.data?.message,
+          );
+        } else {
+          console.error("Failed to fetch profile readiness:", error);
+        }
 
         // No analysis exists yet
         setProfileReadiness(0);
@@ -38,25 +59,26 @@ const Resumes = () => {
     fetchAnalysis();
   }, [selectedResume]);
 
-  const fetchResumes = async () => {
-    try {
-      const response = await api.get("/resumes/");
-      const resumeList = response.data.resumes || [];
-
-      setResumes(resumeList);
-
-      if (resumeList.length > 0) {
-        setSelectedResume(resumeList[0]._id);
-      }
-      setCount(response.data.count);
-    } catch (error) {
-      console.error("Error");
-    }
-  };
-
   useEffect(() => {
-    fetchResumes();
-  }, []);
+    const loadResumes = async () => {
+      try {
+        const response = await api.get("/resumes/");
+        const resumeList = response.data.resumes || [];
+
+        setResumes(resumeList);
+
+        if (resumeList.length > 0) {
+          setSelectedResume(resumeList[0]._id);
+        }
+
+        setCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching resumes:", error);
+      }
+    };
+
+    loadResumes();
+  }, [refreshResumes]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -94,18 +116,21 @@ const Resumes = () => {
       toast.success("Resume uploaded successfully!");
 
       // Refresh resume list after successful upload
-      await fetchResumes();
+      setRefreshResumes((value) => value + 1);
 
-      // Reset file input
       event.target.value = "";
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Resume upload error:", error);
       toast.error("Failed to upload resume. Please try again.");
 
-      setUploadError(
-        error?.response?.data?.message ||
-          "Failed to upload resume. Please try again.",
-      );
+      if (isAxiosError(error)) {
+        setUploadError(
+          error.response?.data?.message ||
+            "Failed to upload resume. Please try again.",
+        );
+      } else {
+        setUploadError("Failed to upload resume. Please try again.");
+      }
     } finally {
       setUploading(false);
     }
@@ -393,7 +418,9 @@ const Resumes = () => {
                     Profile readiness
                   </p>
 
-                  <p className="mt-1 text-2xl font-semibold">{profileReadiness}%</p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {profileReadiness}%
+                  </p>
                 </div>
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500/30 border-t-violet-500 text-[10px] font-semibold">

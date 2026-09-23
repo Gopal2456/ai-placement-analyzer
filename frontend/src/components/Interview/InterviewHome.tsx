@@ -284,7 +284,7 @@ const InterviewHome = () => {
             {/* What you'll practice */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-950">
-                What you'll practice
+                What you&apos;ll practice
               </h3>
 
               <div className="mt-5 space-y-4">
