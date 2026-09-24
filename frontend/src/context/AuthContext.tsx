@@ -81,6 +81,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   return (

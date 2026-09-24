@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 const features = [
   {
@@ -57,9 +58,11 @@ export default function Home() {
           {/* Logo */}
           <a href="#" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
-              <img
+              <Image
                 src="/Logo.png"
                 alt="Logo"
+                width={32}
+                height={32}
                 className="h-8 w-8 object-contain"
               />
             </div>

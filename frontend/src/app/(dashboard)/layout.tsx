@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import LogoutButton from "@/components/LoginSignup/LogoutButton";
 import { FileUser, LogOut, LayoutDashboard, SearchCheck, BookOpenCheck   } from "lucide-react";
+import Image from "next/image";
 
 const navigation = [
   {
@@ -41,9 +42,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex h-20 shrink-0 items-center border-gray-100 px-4">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
-                <img
+                <Image
                   src="/Logo.png"
                   alt="Logo"
+                  width={32}
+                  height={32}
                   className="h-8 w-8 object-contain"
                 />
               </div>

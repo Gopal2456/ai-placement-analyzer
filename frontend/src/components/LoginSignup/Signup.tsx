@@ -4,10 +4,12 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { toast } from "react-toastify";
 import api from "@/api/axios";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { isAxiosError } from "axios";
+import Image from "next/image";
 
 const Signup = () => {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
@@ -61,9 +63,11 @@ const Signup = () => {
           <div className="mb-4 flex justify-center">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
-                <img
+                <Image
                   src="/Logo.png"
                   alt="Logo"
+                  width={32}
+                  height={32}
                   className="h-8 w-8 object-contain"
                 />
               </div>
