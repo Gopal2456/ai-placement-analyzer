@@ -10,6 +10,10 @@ const createAnalysis = async (req, res) => {
   try {
     const { resumeId, jobId } = req.body;
 
+    // ----------------------------------
+    // Validate IDs
+    // ----------------------------------
+
     if (!resumeId || !jobId) {
       return res.status(400).json({
         success: false,
@@ -18,7 +22,7 @@ const createAnalysis = async (req, res) => {
     }
 
     // ----------------------------------
-    // Get resume
+    // Get Resume
     // ----------------------------------
 
     const resume = await Resume.findOne({
@@ -34,7 +38,7 @@ const createAnalysis = async (req, res) => {
     }
 
     // ----------------------------------
-    // Get job
+    // Get Job
     // ----------------------------------
 
     const job = await Job.findById(jobId);
@@ -47,16 +51,18 @@ const createAnalysis = async (req, res) => {
     }
 
     // ----------------------------------
-    // Resume skills
+    // Get Skills
     // ----------------------------------
 
     const resumeSkills = resume.skills || [];
-
-    // ----------------------------------
-    // Job skills
-    // ----------------------------------
-
     const jobSkills = job.skills || [];
+
+    if (!resumeSkills.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No skills found in resume",
+      });
+    }
 
     if (!jobSkills.length) {
       return res.status(400).json({
@@ -67,28 +73,26 @@ const createAnalysis = async (req, res) => {
     }
 
     // ----------------------------------
-    // Calculate deterministic score
+    // Calculate Match Score
     // ----------------------------------
 
-    const { matchScore, matchedSkills, missingSkills } = calculateMatchScore(
+    const {
+      matchScore,
+      matchedSkills,
+      missingSkills,
+    } = calculateMatchScore(
       resumeSkills,
-      jobSkills,
+      jobSkills
     );
 
-    console.log("================================");
-    console.log("RESUME JOB ANALYSIS");
-    console.log("================================");
-    console.log("Resume:", resumeId);
-    console.log("Job:", jobId);
-    console.log("Resume skills:", resumeSkills);
-    console.log("Job skills:", jobSkills);
-    console.log("Matched:", matchedSkills);
-    console.log("Missing:", missingSkills);
-    console.log("Match score:", matchScore);
-    console.log("================================");
+    console.log("Resume Skills:", resumeSkills);
+    console.log("Job Skills:", jobSkills);
+    console.log("Match Score:", matchScore);
+    console.log("Matched Skills:", matchedSkills);
+    console.log("Missing Skills:", missingSkills);
 
     // ----------------------------------
-    // AI explanation
+    // AI Explanation
     // ----------------------------------
 
     const aiResult = await analyzeJobMatchWithAI({
@@ -102,21 +106,27 @@ const createAnalysis = async (req, res) => {
     });
 
     // ----------------------------------
-    // Save analysis
+    // Save Analysis
     // ----------------------------------
 
     const analysis = await Analysis.create({
       userId: req.user.userId,
       resumeId,
       jobId,
+
       matchScore,
       matchedSkills,
       missingSkills,
+
       strengths: aiResult.strengths || [],
       weaknesses: aiResult.weaknesses || [],
       recommendations: aiResult.recommendations || [],
       summary: aiResult.summary || "",
     });
+
+    // ----------------------------------
+    // Response
+    // ----------------------------------
 
     return res.status(201).json({
       success: true,
@@ -124,7 +134,6 @@ const createAnalysis = async (req, res) => {
 
       analysis: {
         id: analysis._id,
-
         resumeId: analysis.resumeId,
         jobId: analysis.jobId,
 
@@ -135,9 +144,7 @@ const createAnalysis = async (req, res) => {
 
         strengths: analysis.strengths,
         weaknesses: analysis.weaknesses,
-
         recommendations: analysis.recommendations,
-
         summary: analysis.summary,
 
         createdAt: analysis.createdAt,

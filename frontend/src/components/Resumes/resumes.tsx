@@ -401,17 +401,10 @@ const Resumes = () => {
                   {selectedResumeData?.fileName || "Resume Profile"}
                 </h2>
               </div>
-
-              {/* <button
-                type="button"
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-[10px] font-semibold text-gray-500 hover:bg-gray-50"
-              >
-                Edit
-              </button> */}
             </div>
 
             {/* Profile readiness */}
-            <div className="mt-6 rounded-xl bg-gray-950 p-5 text-white">
+            {/* <div className="mt-6 rounded-xl bg-gray-950 p-5 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-gray-500">
@@ -436,7 +429,7 @@ const Resumes = () => {
                 Your resume is in good shape. Improve a few skills to increase
                 your job match potential.
               </p>
-            </div>
+            </div> */}
 
             {/* Extracted skills */}
             <div className="mt-6">
@@ -514,13 +507,6 @@ const Resumes = () => {
               >
                 Analyze resume
               </Link>
-
-              {/* <button
-                type="button"
-                className="flex h-10 items-center justify-center rounded-lg border border-gray-200 text-[10px] font-semibold text-gray-600 transition hover:bg-gray-50"
-              >
-                Download
-              </button> */}
             </div>
           </aside>
         </div>

@@ -2,8 +2,10 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const LogoutButton = () => {
+  const router = useRouter();
   const { logout } = useAuth();
 
   const handleLogout = () => {
@@ -11,7 +13,7 @@ const LogoutButton = () => {
 
     toast.success("Logged out successfully");
 
-    window.location.href = "/login";
+    router.push("/");
   };
 
   return (

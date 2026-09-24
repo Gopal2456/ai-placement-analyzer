@@ -4,8 +4,9 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { isAxiosError } from "axios";
+import Image from "next/image";
 
 const Login = () => {
   const { login } = useAuth();
@@ -13,6 +14,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,9 +50,11 @@ const Login = () => {
             <div className="mb-8 text-center">
               <Link href="/" className="inline-flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
-                  <img
+                  <Image
                     src="/Logo.png"
                     alt="Logo"
+                    width={32}
+                    height={32}
                     className="h-8 w-8 object-contain"
                   />
                 </div>

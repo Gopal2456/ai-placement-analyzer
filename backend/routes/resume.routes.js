@@ -3,6 +3,7 @@ const express = require("express");
 const {
   uploadResume,
   getResumes,
+  getResumeById,
 } = require("../controllers/resume.controller");
 
 const auth = require("../middleware/auth");
@@ -54,5 +55,7 @@ router.post(
 /* -------------------- Get Resumes -------------------- */
 
 router.get("/", auth, getResumes);
+
+router.get("/:resumeId", auth, getResumeById);
 
 module.exports = router;

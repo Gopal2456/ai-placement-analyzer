@@ -103,7 +103,39 @@ const getResumes = async (req, res) => {
   }
 };
 
+const getResumeById = async (req, res) => {
+  try {
+    const { resumeId } = req.params;
+
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      userId: req.user.userId,
+    }).select("-filePath");
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: "Resume not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      resume,
+    });
+  } catch (error) {
+    console.error("Get resume by ID error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch resume",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   uploadResume,
   getResumes,
+  getResumeById,
 };
