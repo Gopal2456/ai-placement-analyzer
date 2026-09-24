@@ -1,67 +1,394 @@
 "use client";
 
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { isAxiosError } from "axios";
+import api from "@/api/axios";
 
-const jobs = [
-  {
-    id: 1,
-    company: "TechFlow",
-    companyInitial: "T",
-    role: "Frontend Developer",
-    location: "Dublin, Ireland",
-    type: "Full-time",
-    salary: "€45k – €60k",
-    match: 94,
-    skills: ["React", "TypeScript", "Next.js", "Node.js"],
-    missing: ["GraphQL"],
-    posted: "2 days ago",
-    color: "bg-blue-50 text-blue-600",
-  },
-  {
-    id: 2,
-    company: "Nova Systems",
-    companyInitial: "N",
-    role: "Full Stack Developer",
-    location: "Dublin, Ireland",
-    type: "Full-time",
-    salary: "€50k – €68k",
-    match: 89,
-    skills: ["React", "Node.js", "MongoDB", "TypeScript"],
-    missing: ["AWS"],
-    posted: "4 days ago",
-    color: "bg-violet-50 text-violet-600",
-  },
-  {
-    id: 3,
-    company: "Pixel Labs",
-    companyInitial: "P",
-    role: "React Developer",
-    location: "Remote · Ireland",
-    type: "Full-time",
-    salary: "€42k – €55k",
-    match: 84,
-    skills: ["React", "JavaScript", "REST API", "Git"],
-    missing: ["Testing"],
-    posted: "1 week ago",
-    color: "bg-orange-50 text-orange-600",
-  },
-  {
-    id: 4,
-    company: "CloudBridge",
-    companyInitial: "C",
-    role: "Software Engineer",
-    location: "Cork, Ireland",
-    type: "Full-time",
-    salary: "€48k – €65k",
-    match: 81,
-    skills: ["JavaScript", "Node.js", "React", "Git"],
-    missing: ["Docker", "AWS"],
-    posted: "1 week ago",
-    color: "bg-green-50 text-green-600",
-  },
+interface Job {
+  _id: string;
+  company: string;
+  title: string;
+  description: string;
+  location: string;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  skills: string[];
+  source: string;
+  url: string;
+  createdAt?: string;
+}
+
+interface JobsResponse {
+  success: boolean;
+  message: string;
+  search: {
+    query: string;
+    location: string;
+    page: number;
+  };
+  count: number;
+  jobs: Job[];
+}
+
+interface ApiErrorResponse {
+  message?: string;
+}
+
+const INDIAN_CITIES = [
+  "Pune",
+  "Mumbai",
+  "Bengaluru",
+  "Hyderabad",
+  "Delhi",
+  "Noida",
+  "Gurugram",
+  "Chennai",
+  "Kolkata",
+  "Ahmedabad",
+  "Jaipur",
+  "Chandigarh",
+  "Indore",
+  "Nagpur",
+  "Nashik",
+  "Kochi",
+  "Coimbatore",
+  "Thiruvananthapuram",
+  "Lucknow",
+  "Bhubaneswar",
+  "Vadodara",
+  "Surat",
 ];
 
+// TODO: replace with the skills from the user's parsed resume
+const USER_SKILLS = [
+  "React",
+  "Next.js",
+  "TypeScript",
+  "JavaScript",
+  "Node.js",
+  "MongoDB",
+  "Tailwind CSS",
+  "REST API",
+  "Git",
+];
+
+// Used to detect skills in job descriptions when the API returns none
+const SKILL_KEYWORDS: Record<string, string[]> = {
+  React: ["react", "react.js", "reactjs"],
+  "Next.js": ["next.js", "nextjs"],
+  TypeScript: ["typescript"],
+  JavaScript: ["javascript"],
+  "Node.js": ["node.js", "nodejs", "node js"],
+  MongoDB: ["mongodb"],
+  "Tailwind CSS": ["tailwind"],
+  "REST API": ["rest api", "restful", "rest apis"],
+  GraphQL: ["graphql"],
+  AWS: ["aws"],
+  Docker: ["docker"],
+  Git: ["git"],
+  SQL: ["sql"],
+  Python: ["python"],
+  Java: ["java"],
+  Django: ["django"],
+  Flask: ["flask"],
+  Angular: ["angular"],
+  "Vue.js": ["vue", "vue.js"],
+  "CI/CD": ["ci/cd"],
+};
+
+const normalizeSkill = (skill: string) =>
+  skill
+    .toLowerCase()
+    .replace(/[\s.\-]/g, "")
+    .replace(/js$/, "");
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const hasWord = (text: string, keyword: string) =>
+  new RegExp(`(^|[^a-z0-9])${escapeRegex(keyword)}([^a-z0-9]|$)`).test(text);
+
+interface JobMatch {
+  score: number | null;
+  matched: string[];
+  missing: string[];
+}
+
+const analyzeJob = (job: Job): JobMatch => {
+  const found = new Map<string, string>();
+
+  (job.skills || []).forEach((skill) => found.set(normalizeSkill(skill), skill));
+
+  const text = `${job.title} ${job.description}`.toLowerCase();
+  Object.entries(SKILL_KEYWORDS).forEach(([label, keywords]) => {
+    if (keywords.some((keyword) => hasWord(text, keyword))) {
+      const key = normalizeSkill(label);
+      if (!found.has(key)) found.set(key, label);
+    }
+  });
+
+  const userKeys = new Set(USER_SKILLS.map(normalizeSkill));
+  const matched: string[] = [];
+  const missing: string[] = [];
+
+  found.forEach((label, key) => {
+    (userKeys.has(key) ? matched : missing).push(label);
+  });
+
+  const total = matched.length + missing.length;
+
+  return {
+    score: total > 0 ? Math.round((matched.length / total) * 100) : null,
+    matched,
+    missing,
+  };
+};
+
+const timeAgo = (date?: string) => {
+  if (!date) return "";
+  const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  if (days <= 0) return "Posted today";
+  if (days === 1) return "Posted 1 day ago";
+  if (days < 7) return `Posted ${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `Posted ${weeks} week${weeks > 1 ? "s" : ""} ago`;
+  const months = Math.floor(days / 30);
+  return `Posted ${months} month${months > 1 ? "s" : ""} ago`;
+};
+
+const matchLabel = (score: number) => {
+  if (score >= 80) return { text: "Strong match", color: "text-green-600" };
+  if (score >= 60) return { text: "Good match", color: "text-violet-600" };
+  return { text: "Partial match", color: "text-orange-500" };
+};
+
+const formatSalary = (min: number | null, max: number | null) =>
+  min !== null && max !== null
+    ? `₹${min.toLocaleString("en-IN")} – ₹${max.toLocaleString("en-IN")}`
+    : "";
+
+type JobWithMatch = Job & { match: JobMatch };
+
+const JobCard = ({ job }: { job: JobWithMatch }) => {
+  const [open, setOpen] = useState(false);
+  const { score, matched, missing } = job.match;
+  const label = score !== null ? matchLabel(score) : null;
+  const salary = formatSalary(job.salaryMin, job.salaryMax);
+
+  return (
+    <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+      <div className="flex gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-600">
+          {job.company?.charAt(0)?.toUpperCase() || "J"}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-gray-950">{job.title}</h3>
+
+              <p className="mt-1 text-sm text-gray-600">
+                {job.company || "Company not specified"}
+              </p>
+
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                {job.location && <span>⌖ {job.location}</span>}
+                {salary && <span>{salary}</span>}
+              </div>
+            </div>
+
+            {score !== null && (
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-bold leading-none text-violet-600">
+                  {score}%
+                </p>
+                <p className="mt-1 text-[10px] font-medium text-gray-400">
+                  match
+                </p>
+              </div>
+            )}
+          </div>
+
+          {score !== null && (
+            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-violet-500"
+                style={{ width: `${score}%` }}
+              />
+            </div>
+          )}
+
+          {(matched.length > 0 || missing.length > 0) && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {matched.map((skill) => (
+                <span
+                  key={`m-${skill}`}
+                  className="rounded-lg bg-green-50 px-3 py-1.5 text-[11px] font-semibold text-green-700"
+                >
+                  ✓ {skill}
+                </span>
+              ))}
+              {missing.slice(0, 4).map((skill) => (
+                <span
+                  key={`x-${skill}`}
+                  className="rounded-lg bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-600"
+                >
+                  + {skill}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {open && (
+            <div className="mt-4 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600">
+              {score === null ? (
+                <p>No skills were listed for this job, so it can&apos;t be scored.</p>
+              ) : (
+                <>
+                  <p>
+                    You match {matched.length} of {matched.length + missing.length}{" "}
+                    skills found in this listing.
+                  </p>
+                  {missing.length > 0 && (
+                    <p className="mt-1">
+                      Missing: {missing.join(", ")}. Adding these to your resume
+                      could raise this score.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span>{timeAgo(job.createdAt) || `Source: ${job.source}`}</span>
+              {label && (
+                <>
+                  <span className="h-1 w-1 rounded-full bg-gray-300" />
+                  <span className={`font-semibold ${label.color}`}>
+                    {label.text}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Why this match?
+              </button>
+
+              {job.url && (
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-10 items-center justify-center rounded-lg bg-gray-950 px-5 text-xs font-semibold text-white transition hover:bg-black"
+                >
+                  View job →
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+const DEFAULT_QUERY = "Full Stack Developer";
+const DEFAULT_CITY = "Pune";
+
 const RecommendedJobs = () => {
+  // Values actually used for the API call
+  const [query, setQuery] = useState(DEFAULT_QUERY);
+  const [location, setLocation] = useState(DEFAULT_CITY);
+
+  // Value typed in the input (applied on submit)
+  const [searchInput, setSearchInput] = useState(DEFAULT_QUERY);
+
+  // Bumped to force a re-fetch with the same query/location
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // The latest response, tagged with the request it belongs to
+  const [result, setResult] = useState<{
+    key: string;
+    jobs: Job[];
+    error: string;
+  } | null>(null);
+
+  const requestKey = `${query}|${location}|${refreshTick}`;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<JobsResponse>("/jobs/import", {
+        params: { query, location, limit: 10 },
+      })
+      .then((response) => {
+        if (cancelled) return;
+        setResult({
+          key: requestKey,
+          jobs: response.data.jobs || [],
+          error: "",
+        });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        console.error("Fetch recommended jobs error:", err);
+
+        const message = isAxiosError<ApiErrorResponse>(err)
+          ? err.response?.data?.message || "Failed to fetch recommended jobs."
+          : "Failed to fetch recommended jobs.";
+
+        setResult({ key: requestKey, jobs: [], error: message });
+      });
+
+    // Cancels stale responses when the user searches again quickly
+    return () => {
+      cancelled = true;
+    };
+  }, [query, location, requestKey]);
+
+  // Derived state: no setState needed inside the effect
+  const loading = result?.key !== requestKey;
+  const jobs = result?.jobs ?? [];
+  const error = loading ? "" : (result?.error ?? "");
+
+  const refetch = () => setRefreshTick((t) => t + 1);
+
+  const rankedJobs: JobWithMatch[] = useMemo(
+    () =>
+      jobs
+        .map((job) => ({ ...job, match: analyzeJob(job) }))
+        .sort((a, b) => (b.match.score ?? -1) - (a.match.score ?? -1)),
+    [jobs],
+  );
+
+  const handleSearch = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const trimmed = searchInput.trim();
+    if (!trimmed) return;
+
+    // If the query is unchanged, the effect won't re-run, so fetch directly
+    if (trimmed === query) {
+      refetch();
+    } else {
+      setQuery(trimmed);
+    }
+  };
+
+  const handleCityChange = (city: string) => {
+    setLocation(city); // effect re-fetches automatically
+  };
+
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -85,7 +412,9 @@ const RecommendedJobs = () => {
 
             <button
               type="button"
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+              onClick={refetch}
+              disabled={loading}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
             >
               <span>↻</span>
               Refresh matches
@@ -112,7 +441,9 @@ const RecommendedJobs = () => {
               </div>
 
               <h2 className="mt-4 text-xl font-bold tracking-tight">
-                We found 24 jobs that match your profile.
+                {loading
+                  ? "Finding jobs that match your profile..."
+                  : `We found ${jobs.length} jobs that match your profile.`}
               </h2>
 
               <p className="mt-2 max-w-xl text-xs leading-6 text-gray-400">
@@ -144,7 +475,10 @@ const RecommendedJobs = () => {
         </section>
 
         {/* Filters */}
-        <div className="mt-7 flex flex-col gap-3 lg:flex-row">
+        <form
+          onSubmit={handleSearch}
+          className="mt-7 flex flex-col gap-3 lg:flex-row"
+        >
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               ⌕
@@ -152,24 +486,33 @@ const RecommendedJobs = () => {
 
             <input
               type="text"
-              placeholder="Search recommended jobs..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search jobs, e.g. React Developer"
               className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-xs text-gray-800 outline-none placeholder:text-gray-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
             />
           </div>
 
-          <select className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-xs font-medium text-gray-600 outline-none focus:border-violet-400">
-            <option>All locations</option>
-            <option>Dublin</option>
-            <option>Cork</option>
-            <option>Remote</option>
+          <select
+            value={location}
+            onChange={(e) => handleCityChange(e.target.value)}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-xs font-medium text-gray-600 outline-none focus:border-violet-400"
+          >
+            {INDIAN_CITIES.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
           </select>
 
-          <select className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-xs font-medium text-gray-600 outline-none focus:border-violet-400">
-            <option>Match: Highest</option>
-            <option>Newest</option>
-            <option>Salary: Highest</option>
-          </select>
-        </div>
+          <button
+            type="submit"
+            disabled={loading || !searchInput.trim()}
+            className="h-11 rounded-xl bg-violet-600 px-6 text-xs font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+          >
+            Search
+          </button>
+        </form>
 
         {/* Content */}
         <div className="mt-7 grid gap-6 lg:grid-cols-3">
@@ -178,130 +521,68 @@ const RecommendedJobs = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-gray-950">
-                  Best matches
+                  Available jobs
                 </h2>
 
                 <p className="mt-1 text-xs text-gray-400">
-                  Ranked by compatibility with your resume
+                  Jobs found for {query} in {location}
                 </p>
               </div>
 
-              <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[10px] font-semibold text-violet-600">
-                24 matches
-              </span>
+              {!loading && !error && (
+                <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[10px] font-semibold text-violet-600">
+                  {jobs.length} jobs
+                </span>
+              )}
             </div>
 
-            {jobs.map((job) => (
-              <article
-                key={job.id}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-300 hover:shadow-md"
-              >
-                <div className="flex gap-4">
-                  {/* Company */}
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${job.color}`}
-                  >
-                    {job.companyInitial}
-                  </div>
+            {loading && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-violet-600" />
 
-                  <div className="min-w-0 flex-1">
-                    {/* Job heading */}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-950">
-                          {job.role}
-                        </h3>
+                <p className="mt-4 text-sm font-semibold text-gray-800">
+                  Finding jobs...
+                </p>
 
-                        <p className="mt-1 text-xs font-medium text-gray-600">
-                          {job.company}
-                        </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Searching for {query} jobs in {location}.
+                </p>
+              </div>
+            )}
 
-                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-400">
-                          <span>⌖ {job.location}</span>
-                          <span>◷ {job.type}</span>
-                          <span>€ {job.salary.replace("€ ", "")}</span>
-                        </div>
-                      </div>
+            {error && !loading && (
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-5">
+                <p className="text-sm font-semibold text-red-600">
+                  Failed to load jobs
+                </p>
 
-                      {/* Match */}
-                      <div className="flex shrink-0 items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-violet-600">
-                            {job.match}%
-                          </p>
+                <p className="mt-1 text-xs text-red-500">{error}</p>
 
-                          <p className="text-[9px] font-medium text-gray-400">
-                            match
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                <button
+                  type="button"
+                  onClick={refetch}
+                  className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
 
-                    {/* Match bar */}
-                    <div className="mt-5">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className="h-full rounded-full bg-violet-500"
-                          style={{ width: `${job.match}%` }}
-                        />
-                      </div>
-                    </div>
+            {!loading && !error && jobs.length === 0 && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
+                <p className="text-sm font-semibold text-gray-800">
+                  No jobs found
+                </p>
 
-                    {/* Skills */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {job.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-lg bg-green-50 px-2.5 py-1.5 text-[9px] font-semibold text-green-700"
-                        >
-                          ✓ {skill}
-                        </span>
-                      ))}
+                <p className="mt-1 text-xs text-gray-400">
+                  Try a different job title or city.
+                </p>
+              </div>
+            )}
 
-                      {job.missing.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-lg bg-orange-50 px-2.5 py-1.5 text-[9px] font-semibold text-orange-600"
-                        >
-                          + {skill}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Bottom */}
-                    <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-gray-400">
-                          Posted {job.posted}
-                        </span>
-
-                        <span className="h-1 w-1 rounded-full bg-gray-300" />
-
-                        <span className="text-[9px] font-semibold text-green-600">
-                          Strong match
-                        </span>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="flex h-9 items-center justify-center rounded-lg border border-gray-200 px-3 text-[10px] font-semibold text-gray-600 transition hover:bg-gray-50"
-                        >
-                          Why this match?
-                        </button>
-
-                        <button
-                          type="button"
-                          className="flex h-9 items-center justify-center rounded-lg bg-gray-950 px-4 text-[10px] font-semibold text-white transition hover:bg-black"
-                        >
-                          View job →
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
+            {!loading &&
+              !error &&
+              rankedJobs.map((job) => <JobCard key={job._id} job={job} />)}
           </section>
 
           {/* Sidebar */}
@@ -329,9 +610,7 @@ const RecommendedJobs = () => {
 
               <div className="mt-5 flex items-center gap-5">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-8 border-violet-100">
-                  <span className="text-lg font-bold text-gray-950">
-                    82%
-                  </span>
+                  <span className="text-lg font-bold text-gray-950">82%</span>
                 </div>
 
                 <div>
