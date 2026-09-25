@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import LogoutButton from "@/components/LoginSignup/LogoutButton";
-import { FileUser, LogOut, LayoutDashboard, SearchCheck, BookOpenCheck   } from "lucide-react";
+import {
+  FileUser,
+  LogOut,
+  LayoutDashboard,
+  SearchCheck,
+  BookOpenCheck,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 
 const navigation = [
@@ -32,6 +39,7 @@ const navigation = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -154,22 +162,171 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </aside>
 
+        {/* Mobile sidebar backdrop */}
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
+            mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        />
+
+        {/* Mobile sidebar (slides in from right) */}
+        <aside
+          className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[80%] transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {/* Logo + close */}
+          <div className="flex h-18 shrink-0 items-center justify-between border-b border-gray-100 px-4">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="inline-flex items-center gap-2"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
+                <Image
+                  src="/Logo.png"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+
+              <div>
+                <p className="text-[15px] font-bold tracking-tight text-gray-950">
+                  Placement<span className="text-violet-600"> AI</span>
+                </p>
+                <p className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.18em] text-gray-400">
+                  Career Intelligence
+                </p>
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
+            <div>
+              <p className="mb-3 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                Workspace
+              </p>
+
+              <nav className="space-y-1">
+                {navigation.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`group flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-gray-950 text-white shadow-sm"
+                          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-4.5 w-4.5 items-center justify-center rounded-lg text-sm ${
+                          isActive
+                            ? "bg-white/10 text-violet-300"
+                            : "text-gray-400 group-hover:text-violet-600"
+                        }`}
+                      >
+                        {item.icon}
+                      </span>
+
+                      <span>{item.label}</span>
+
+                      {item.label === "Job Matches" && (
+                        <span
+                          className={`ml-auto rounded-full px-2 py-0.5 text-[8px] font-bold ${
+                            isActive
+                              ? "bg-violet-500/20 text-violet-200"
+                              : "bg-violet-50 text-violet-600"
+                          }`}
+                        >
+                          AI
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Bottom navigation */}
+            <div className="mt-auto">
+              <p className="mb-3 px-3 text-[9px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                Account
+              </p>
+
+              {/* User */}
+              <div className="mt-4 border-t border-gray-100 py-4">
+                <div className="flex items-center gap-3 pb-2 rounded-xl">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-xs font-bold text-white">
+                    G
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold text-gray-600">
+                      Gopal
+                    </p>
+
+                    <p className="truncate text-[10px] text-gray-400">
+                      Career Explorer
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="text-gray-400 transition hover:text-gray-900"
+                  >
+                    •••
+                  </button>
+                </div>
+                <div className="flex hover:bg-rose-50 hover:text-rose-400 text-sm p-2 rounded-md text-gray-400 items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <LogoutButton />
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
         {/* Main content */}
         <div className="min-w-0 flex-1 lg:pl-61">
           {/* Mobile header */}
           <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white/95 px-5 backdrop-blur-lg lg:hidden">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-950 text-sm font-bold text-white">
-                A
-              </div>
+              <Image
+                src="/Logo.png"
+                alt="Logo"
+                width={30}
+                height={30}
+                className="h-7 w-7 object-contain"
+              />
 
-              <span className="text-sm font-bold">
-                Placement<span className="text-violet-600">AI</span>
+              <span className="text-sm text-black font-bold">
+                Placement <span className="text-violet-600"> AI</span>
               </span>
             </Link>
 
             <button
               type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open menu"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600"
             >
               ☰
