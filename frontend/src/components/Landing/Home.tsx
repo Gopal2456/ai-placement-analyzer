@@ -54,7 +54,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#f7f8fa] text-[#111827]">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-black/6 bg-[#f7f8fa]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 lg:px-8">
           {/* Logo */}
           <a href="#" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full text-white">
@@ -141,24 +141,94 @@ export default function Home() {
           </button>
         </div>
 
-        {menuOpen && (
-          <div className="border-t border-black/6 bg-white px-6 py-5 md:hidden">
-            <div className="flex flex-col gap-4">
-              <a href="#features" className="text-sm font-medium">
-                Features
-              </a>
-              <a href="#how-it-works" className="text-sm font-medium">
-                How it works
-              </a>
-              <a href="#about" className="text-sm font-medium">
-                About
-              </a>
-              <button className="mt-2 rounded-xl bg-[#111827] px-5 py-3 text-sm font-semibold text-white">
-                Get started
-              </button>
+        {/* Backdrop */}
+        <div
+          onClick={() => setMenuOpen(false)}
+          className={`fixed inset-0 z-40 transition-opacity duration-300 md:hidden ${
+            menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        />
+
+        {/* Slide-in panel */}
+        <div
+          className={`fixed inset-y-0 right-0 z-50 w-72 max-w-[60%] h-screen transform bg-white shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+            menuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="flex h-18 items-center justify-between border-b border-black/6 px-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full text-white">
+                <Image
+                  src="/Logo.png"
+                  alt="Logo"
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 object-contain"
+                />
+              </div>
             </div>
+
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="rounded-lg border border-black/10 bg-white p-2"
+              aria-label="Close menu"
+            >
+              <span className="block text-lg leading-none text-gray-700">
+                ✕
+              </span>
+            </button>
           </div>
-        )}
+
+          <div className="flex flex-col bg-white gap-4 px-5 py-6">
+            <a
+              href="#features"
+              onClick={() => setMenuOpen(false)}
+              className="text-sm font-medium text-gray-700"
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={() => setMenuOpen(false)}
+              className="text-sm font-medium text-gray-700"
+            >
+              How it works
+            </a>
+            <a
+              href="#about"
+              onClick={() => setMenuOpen(false)}
+              className="text-sm font-medium text-gray-700"
+            >
+              About
+            </a>
+            {!isAuthenticated ? (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-2 rounded-xl bg-[#111827] px-5 py-3 text-center text-sm font-semibold text-white"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-2 rounded-xl bg-[#111827] px-5 py-3 text-center text-sm font-semibold text-white"
+                >
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="mt-2 rounded-xl bg-[#111827] p-3 text-center text-sm font-semibold text-white"
+              >
+                Go to dashboard
+              </Link>
+            )}
+          </div>
+        </div>
       </nav>
 
       {/* Hero */}
