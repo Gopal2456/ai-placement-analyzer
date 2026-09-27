@@ -9,7 +9,46 @@ const {
 
 const generateInterview = async (req, res) => {
   try {
-    const { resumeId, jobId } = req.body;
+    const {
+      resumeId,
+      jobId,
+      questionType = "all",
+      difficulty = "mixed",
+      questionCount = 10,
+    } = req.body;
+
+    const validQuestionTypes = [
+      "all",
+      "technical",
+      "behavioral",
+      "resume",
+      "skill-gaps",
+    ];
+
+    const validDifficulties = ["easy", "medium", "hard", "mixed"];
+
+    const validQuestionCounts = [5, 10, 15, 20];
+
+    if (!validQuestionTypes.includes(questionType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid question type",
+      });
+    }
+
+    if (!validDifficulties.includes(difficulty)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid difficulty",
+      });
+    }
+
+    if (!validQuestionCounts.includes(Number(questionCount))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid question count",
+      });
+    }
 
     if (!resumeId) {
       return res.status(400).json({
@@ -48,12 +87,19 @@ const generateInterview = async (req, res) => {
     const questions = await generateInterviewQuestionsWithAI({
       resumeText: resume.extractedText,
       jobDescription: job?.description || "",
+      jobTitle: job?.title || "",
+      questionType,
+      difficulty,
+      questionCount: Number(questionCount),
     });
 
     const interview = await Interview.create({
       userId: req.user.userId,
       resumeId,
       jobId: jobId || null,
+      questionType,
+      difficulty,
+      questionCount: Number(questionCount),
       questions,
     });
 
@@ -261,20 +307,17 @@ const getInterviews = async (req, res) => {
 
     const formattedInterviews = interviews.map((interview) => {
       const answeredQuestions = interview.questions.filter(
-        (question) =>
-          question.answer && question.answer.trim().length > 0
+        (question) => question.answer && question.answer.trim().length > 0,
       );
 
       const totalScore = answeredQuestions.reduce(
         (sum, question) => sum + (question.score || 0),
-        0
+        0,
       );
 
       const overallScore =
         answeredQuestions.length > 0
-          ? Number(
-              (totalScore / answeredQuestions.length).toFixed(1)
-            )
+          ? Number((totalScore / answeredQuestions.length).toFixed(1))
           : null;
 
       return {
@@ -292,8 +335,8 @@ const getInterviews = async (req, res) => {
           answeredQuestions.length === interview.questions.length
             ? "completed"
             : answeredQuestions.length > 0
-            ? "in-progress"
-            : "not-started",
+              ? "in-progress"
+              : "not-started",
 
         createdAt: interview.createdAt,
         updatedAt: interview.updatedAt,
@@ -310,8 +353,7 @@ const getInterviews = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message || "Failed to get interview history",
+      message: error.message || "Failed to get interview history",
     });
   }
 };

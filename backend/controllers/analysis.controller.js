@@ -2,8 +2,7 @@ const Resume = require("../models/Resume");
 const Job = require("../models/Job");
 const Analysis = require("../models/Analysis");
 
-const { analyzeJobMatchWithAI } = require("../services/ai.service");
-const { analyzeResumeWithAI } = require("../services/ai.service");
+const { analyzeJobMatchWithAI, extractJobSkillsWithAI } = require("../services/ai.service");
 const { calculateMatchScore } = require("../services/scoring.service");
 
 const createAnalysis = async (req, res) => {
@@ -55,13 +54,22 @@ const createAnalysis = async (req, res) => {
     // ----------------------------------
 
     const resumeSkills = resume.skills || [];
-    const jobSkills = job.skills || [];
+    let jobSkills = job.skills || [];
 
     if (!resumeSkills.length) {
       return res.status(400).json({
         success: false,
         message: "No skills found in resume",
       });
+    }
+
+    if (!jobSkills.length) {
+      jobSkills = await extractJobSkillsWithAI(job.description || "");
+
+      if (jobSkills.length) {
+        job.skills = jobSkills;
+        await job.save();
+      }
     }
 
     if (!jobSkills.length) {
@@ -160,77 +168,6 @@ const createAnalysis = async (req, res) => {
     });
   }
 };
-
-// const createAnalysis = async (req, res) => {
-//   try {
-//     const { resumeId } = req.body;
-
-//     if (!resumeId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "resumeId is required",
-//       });
-//     }
-
-//     const resume = await Resume.findOne({
-//       _id: resumeId,
-//       userId: req.user.userId,
-//     });
-
-//     if (!resume) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "Resume not found",
-//       });
-//     }
-
-//     if (!resume.extractedText) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Resume text has not been extracted",
-//       });
-//     }
-
-//     console.log("Starting resume analysis...");
-//     console.log("Resume:", resume.fileName);
-
-//     const analysisResult = await analyzeResumeWithAI(
-//       resume.extractedText,
-//       resume.skills,
-//     );
-
-//     console.log("AI analysis completed");
-
-//     const analysis = await Analysis.create({
-//       userId: req.user.userId,
-//       resumeId: resume._id,
-//       overallScore: analysisResult.overallScore,
-//       skillsScore: analysisResult.skillsScore,
-//       experienceScore: analysisResult.experienceScore,
-//       projectsScore: analysisResult.projectsScore,
-//       educationScore: analysisResult.educationScore,
-//       strengths: analysisResult.strengths,
-//       weaknesses: analysisResult.weaknesses,
-//       suggestions: analysisResult.suggestions,
-//       missingSkills: analysisResult.missingSkills,
-//       summary: analysisResult.summary,
-//     });
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Resume analyzed successfully",
-//       analysis,
-//     });
-//   } catch (error) {
-//     console.error("Resume analysis error:", error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to analyze resume",
-//       error: error.message,
-//     });
-//   }
-// };
 
 const getAnalysis = async (req, res) => {
   try {

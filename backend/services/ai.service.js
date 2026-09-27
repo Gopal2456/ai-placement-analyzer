@@ -370,6 +370,10 @@ const analyzeJobMatchWithAI = async ({
 const generateInterviewQuestionsWithAI = async ({
   resumeText,
   jobDescription = "",
+  jobTitle = "",
+  questionType = "all",
+  difficulty = "mixed",
+  questionCount = 10,
 }) => {
   try {
     if (!resumeText || !resumeText.trim()) {
@@ -377,42 +381,91 @@ const generateInterviewQuestionsWithAI = async ({
     }
 
     const prompt = `
-    You are an expert technical interviewer.
+      You are an expert technical interviewer.
 
-    Generate interview questions based on the candidate's resume
-    and the target job description.
+      Generate an interview session for the candidate based on their resume
+      and target job.
 
-    Candidate Resume:
-    ${resumeText}
+      TARGET JOB:
+      ${jobTitle || "Not specified"}
 
-    Job Description:
-    ${jobDescription || "No specific job description provided."}
+      JOB DESCRIPTION:
+      ${jobDescription || "No specific job description provided."}
 
-    Generate exactly 10 interview questions.
+      CANDIDATE RESUME:
+      ${resumeText}
 
-    Return ONLY valid JSON in this format:
+      INTERVIEW SETTINGS:
 
-    {
-      "questions": [
-        {
-          "question": "Question text",
-          "type": "technical",
-          "difficulty": "medium"
-        }
-      ]
-    }
+      Question Type:
+      ${questionType}
 
-    Rules:
+      Difficulty:
+      ${difficulty}
 
-    - Generate exactly 10 questions.
-    - Mix technical, behavioral, project, and general questions.
-    - Questions must be relevant to the candidate's actual resume.
-    - If a job description is provided, prioritize skills required by the job.
-    - Do not invent technologies that are not present in the resume or job description.
-    - difficulty must be one of: easy, medium, hard.
-    - type must be one of: technical, behavioral, project, general.
-    - Return JSON only.
-    `;
+      Number of Questions:
+      ${questionCount}
+
+      QUESTION TYPE RULES:
+
+      If question type is "all":
+      - Generate a balanced mixture of technical, behavioral, project, and general questions.
+
+      If question type is "technical":
+      - Generate only technical questions.
+      - Focus on technologies and concepts relevant to the target job.
+
+      If question type is "behavioral":
+      - Generate only behavioral questions.
+      - Focus on communication, teamwork, ownership, conflict resolution, decision making,
+        and workplace situations.
+
+      If question type is "resume":
+      - Generate questions specifically from the candidate's resume.
+      - Focus on projects, experience, technologies, responsibilities, and decisions
+        mentioned in the resume.
+
+      If question type is "skill-gaps":
+      - Generate questions around skills that are required by the job but are missing
+        or weak in the candidate's resume.
+
+      DIFFICULTY RULES:
+
+      If difficulty is "easy":
+      - Generate only easy questions.
+
+      If difficulty is "medium":
+      - Generate only medium questions.
+
+      If difficulty is "hard":
+      - Generate only hard questions.
+
+      If difficulty is "mixed":
+      - Mix easy, medium, and hard questions.
+
+      IMPORTANT RULES:
+
+      - Generate exactly ${questionCount} questions.
+      - Do not invent technologies that are not present in the resume or job description.
+      - Questions should be relevant to the candidate.
+      - Do not repeat questions.
+      - difficulty must be one of:
+        "easy", "medium", "hard"
+      - type must be one of:
+        "technical", "behavioral", "project", "general"
+
+      Return ONLY valid JSON.
+
+      {
+        "questions": [
+          {
+            "question": "Question text",
+            "type": "technical",
+            "difficulty": "medium"
+          }
+        ]
+      }
+      `;
 
     const response = await groq.chat.completions.create({
       model: MODEL,
@@ -689,10 +742,71 @@ const evaluateInterviewAnswersWithAI = async ({
   }
 };
 
+const extractJobSkillsWithAI = async (jobDescription) => {
+  try {
+    if (!jobDescription || !jobDescription.trim()) {
+      throw new Error("Job description is empty");
+    }
+
+    const prompt = `
+      You are a job description skill extraction system.
+
+      Analyze the job description below and extract the technical/professional
+      skills required or preferred for this role.
+
+      Return ONLY a valid JSON object in exactly this format:
+
+      {
+        "skills": []
+      }
+
+      Rules:
+      - Include programming languages, frameworks, libraries, databases,
+        cloud technologies, developer tools, and AI/ML technologies.
+      - Include relevant professional/technical skills.
+      - Do not include company names, job titles, degrees, or locations.
+      - Do not include generic qualities like "team player" or "communication".
+      - Keep each skill short (e.g. "React", "Node.js", "AWS").
+
+      Job Description:
+      ${jobDescription}
+    `;
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0,
+    });
+
+    const output = response.choices[0]?.message?.content?.trim();
+    if (!output) throw new Error("AI returned an empty response");
+
+    const cleaned = cleanJsonResponse(output);
+    const parsed = JSON.parse(cleaned);
+
+    if (!parsed || !Array.isArray(parsed.skills)) {
+      throw new Error("AI returned invalid job skills format");
+    }
+
+    return [
+      ...new Set(
+        parsed.skills
+          .filter((s) => typeof s === "string")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    ];
+  } catch (error) {
+    console.error("Groq job skill extraction error:", error);
+    throw new Error(`Job skill extraction failed: ${error.message}`);
+  }
+};
+
 module.exports = {
   groq,
   extractResumeDataWithAI,
   analyzeResumeWithAI,
+  extractJobSkillsWithAI,
   analyzeJobMatchWithAI,
   generateInterviewQuestionsWithAI,
   evaluateInterviewAnswerWithAI,

@@ -65,12 +65,14 @@ const AnalysisContent = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
+  const [jobSearch, setJobSearch] = useState("");
+
   /*
    * Fetch selected resume
    */
   useEffect(() => {
     if (!resumeId) {
-    //   setLoading(false);
+      //   setLoading(false);
       return;
     }
 
@@ -79,19 +81,14 @@ const AnalysisContent = () => {
         setLoading(true);
         setError("");
 
-        const response = await api.get<ResumeResponse>(
-          `/resumes/${resumeId}`,
-        );
+        const response = await api.get<ResumeResponse>(`/resumes/${resumeId}`);
 
         setResume(response.data.resume);
       } catch (error: unknown) {
         console.error("Fetch resume error:", error);
 
         if (isAxiosError<ApiErrorResponse>(error)) {
-          setError(
-            error.response?.data?.message ||
-              "Failed to fetch resume.",
-          );
+          setError(error.response?.data?.message || "Failed to fetch resume.");
         } else {
           setError("Failed to fetch resume.");
         }
@@ -116,10 +113,7 @@ const AnalysisContent = () => {
         console.error("Fetch jobs error:", error);
 
         if (isAxiosError<ApiErrorResponse>(error)) {
-          setError(
-            error.response?.data?.message ||
-              "Failed to fetch jobs.",
-          );
+          setError(error.response?.data?.message || "Failed to fetch jobs.");
         } else {
           setError("Failed to fetch jobs.");
         }
@@ -128,6 +122,37 @@ const AnalysisContent = () => {
 
     fetchJobs();
   }, []);
+
+  const searchJobs = async () => {
+    if (!jobSearch.trim()) return;
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get<JobsResponse>(
+        `/jobs/import?query=${encodeURIComponent(jobSearch)}&limit=10`,
+      );
+
+      const normalized = (response.data.jobs || []).map((j: Job) => ({
+        ...j,
+        id: j.id,
+      }));
+      setJobs(normalized);
+
+      // setJobs(response.data.jobs || []);
+    } catch (error: unknown) {
+      console.error("Search jobs error:", error);
+
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        setError(error.response?.data?.message || "Failed to search jobs.");
+      } else {
+        setError("Failed to search jobs.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /*
    * Analyze Resume against Job
@@ -148,13 +173,10 @@ const AnalysisContent = () => {
       setError("");
       setAnalysis(null);
 
-      const response = await api.post<AnalysisResponse>(
-        "/analysis",
-        {
-          resumeId,
-          jobId: selectedJob,
-        },
-      );
+      const response = await api.post<AnalysisResponse>("/analysis", {
+        resumeId,
+        jobId: selectedJob,
+      });
 
       setAnalysis(response.data.analysis);
     } catch (error: unknown) {
@@ -162,8 +184,7 @@ const AnalysisContent = () => {
 
       if (isAxiosError<ApiErrorResponse>(error)) {
         setError(
-          error.response?.data?.message ||
-            "Failed to analyze job match.",
+          error.response?.data?.message || "Failed to analyze job match.",
         );
       } else {
         setError("Failed to analyze job match.");
@@ -211,9 +232,7 @@ const AnalysisContent = () => {
             <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" />
           </div>
 
-          <p className="mt-6 text-sm font-semibold text-gray-800">
-            Loading...
-          </p>
+          <p className="mt-6 text-sm font-semibold text-gray-800">Loading...</p>
 
           <p className="mt-2 text-xs text-gray-400">
             Loading your resume and available jobs.
@@ -240,9 +259,7 @@ const AnalysisContent = () => {
             Analysis failed
           </h2>
 
-          <p className="mt-2 text-xs leading-5 text-gray-500">
-            {error}
-          </p>
+          <p className="mt-2 text-xs leading-5 text-gray-500">{error}</p>
 
           <button
             type="button"
@@ -256,14 +273,11 @@ const AnalysisContent = () => {
     );
   }
 
-  const selectedJobData = jobs.find(
-    (job) => job.id === selectedJob,
-  );
+  const selectedJobData = jobs.find((job) => job.id === selectedJob);
 
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-
         {/* Header */}
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-600">
@@ -282,7 +296,6 @@ const AnalysisContent = () => {
         {/* Resume + Job Selection */}
         {!analysis && (
           <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
-
             {/* Resume */}
             <div>
               <label className="text-xs font-semibold text-gray-800">
@@ -307,7 +320,7 @@ const AnalysisContent = () => {
             </div>
 
             {/* Job */}
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <label
                 htmlFor="job"
                 className="text-xs font-semibold text-gray-800"
@@ -324,9 +337,81 @@ const AnalysisContent = () => {
                 }}
                 className="mt-2 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10"
               >
-                <option value="">
-                  Select Job
-                </option>
+                <option value="">Select Job</option>
+
+                <button
+                  type="button"
+                  onClick={searchJobs}
+                  className="mt-3 rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  Search Jobs
+                </button>
+
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                    {job.company ? ` — ${job.company}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <input
+              type="text"
+              value={jobSearch}
+              onChange={(e) => setJobSearch(e.target.value)}
+              placeholder="Enter job role e.g. React Developer"
+              className="h-11 w-full rounded-xl border text-black border-gray-200 px-4 text-sm"
+            /> */}
+
+            {/* Job search */}
+            <div className="mt-6">
+              <label
+                htmlFor="jobSearch"
+                className="text-xs font-semibold text-gray-800"
+              >
+                Search Jobs
+              </label>
+
+              <div className="mt-2 flex gap-2">
+                <input
+                  id="jobSearch"
+                  type="text"
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  placeholder="Enter job role e.g. React Developer"
+                  className="h-11 w-full rounded-xl border text-black border-gray-200 px-4 text-sm"
+                />
+
+                <button
+                  type="button"
+                  onClick={searchJobs}
+                  className="h-11 shrink-0 rounded-xl bg-gray-950 px-5 text-sm font-semibold text-white"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {/* Job select */}
+            <div className="mt-4">
+              <label
+                htmlFor="job"
+                className="text-xs font-semibold text-gray-800"
+              >
+                Job
+              </label>
+
+              <select
+                id="job"
+                value={selectedJob}
+                onChange={(e) => {
+                  setSelectedJob(e.target.value);
+                  setError("");
+                }}
+                className="mt-2 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10"
+              >
+                <option value="">Select Job</option>
 
                 {jobs.map((job) => (
                   <option key={job.id} value={job.id}>
@@ -340,7 +425,6 @@ const AnalysisContent = () => {
             {/* Selected Job Preview */}
             {selectedJobData && (
               <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-
                 <p className="text-sm font-semibold text-gray-900">
                   {selectedJobData.title}
                 </p>
@@ -374,25 +458,17 @@ const AnalysisContent = () => {
 
             {/* Error */}
             {error && (
-              <p className="mt-4 text-xs font-medium text-red-500">
-                {error}
-              </p>
+              <p className="mt-4 text-xs font-medium text-red-500">{error}</p>
             )}
 
             {/* Analyze Button */}
             <button
               type="button"
               onClick={handleAnalyzeJobMatch}
-              disabled={
-                analyzing ||
-                !resumeId ||
-                !selectedJob
-              }
+              disabled={analyzing || !resumeId || !selectedJob}
               className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {analyzing
-                ? "Analyzing Job Match..."
-                : "Analyze Job Match"}
+              {analyzing ? "Analyzing Job Match..." : "Analyze Job Match"}
             </button>
           </div>
         )}
@@ -401,7 +477,6 @@ const AnalysisContent = () => {
         {analyzing && (
           <div className="mt-6 flex min-h-75 items-center justify-center rounded-2xl border border-gray-200 bg-white">
             <div className="text-center">
-
               <div className="relative mx-auto flex h-16 w-16 items-center justify-center">
                 <div className="absolute h-16 w-16 animate-spin rounded-full border-4 border-gray-100 border-t-violet-600" />
 
@@ -425,7 +500,6 @@ const AnalysisContent = () => {
             {/* Match Score */}
             <div className="mt-6 rounded-2xl bg-gray-950 p-6 text-white">
               <div className="flex items-center justify-between">
-
                 <div>
                   <p className="text-xs uppercase tracking-wider text-gray-400">
                     Job Match Score
@@ -448,7 +522,6 @@ const AnalysisContent = () => {
 
             {/* Matched / Missing Skills */}
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
               {/* Matched */}
               <div className="rounded-2xl border border-gray-200 bg-white p-6">
                 <div className="flex items-center justify-between">
@@ -512,25 +585,19 @@ const AnalysisContent = () => {
 
             {/* Strengths / Weaknesses */}
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
               <div className="rounded-2xl border border-gray-200 bg-white p-6">
                 <h2 className="text-sm font-semibold text-gray-900">
                   Strengths
                 </h2>
 
                 <div className="mt-4 space-y-3">
-                  {analysis.strengths?.map(
-                    (strength, index) => (
-                      <div
-                        key={index}
-                        className="rounded-xl bg-green-50 p-4"
-                      >
-                        <p className="text-xs leading-5 text-gray-700">
-                          {strength}
-                        </p>
-                      </div>
-                    ),
-                  )}
+                  {analysis.strengths?.map((strength, index) => (
+                    <div key={index} className="rounded-xl bg-green-50 p-4">
+                      <p className="text-xs leading-5 text-gray-700">
+                        {strength}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -540,18 +607,13 @@ const AnalysisContent = () => {
                 </h2>
 
                 <div className="mt-4 space-y-3">
-                  {analysis.weaknesses?.map(
-                    (weakness, index) => (
-                      <div
-                        key={index}
-                        className="rounded-xl bg-red-50 p-4"
-                      >
-                        <p className="text-xs leading-5 text-gray-700">
-                          {weakness}
-                        </p>
-                      </div>
-                    ),
-                  )}
+                  {analysis.weaknesses?.map((weakness, index) => (
+                    <div key={index} className="rounded-xl bg-red-50 p-4">
+                      <p className="text-xs leading-5 text-gray-700">
+                        {weakness}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -563,22 +625,20 @@ const AnalysisContent = () => {
               </h2>
 
               <div className="mt-4 space-y-3">
-                {analysis.recommendations?.map(
-                  (recommendation, index) => (
-                    <div
-                      key={index}
-                      className="flex gap-3 rounded-xl bg-gray-50 p-4"
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-600">
-                        {index + 1}
-                      </span>
+                {analysis.recommendations?.map((recommendation, index) => (
+                  <div
+                    key={index}
+                    className="flex gap-3 rounded-xl bg-gray-50 p-4"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-600">
+                      {index + 1}
+                    </span>
 
-                      <p className="text-xs leading-5 text-gray-700">
-                        {recommendation}
-                      </p>
-                    </div>
-                  ),
-                )}
+                    <p className="text-xs leading-5 text-gray-700">
+                      {recommendation}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
