@@ -6,6 +6,7 @@ import { ListCheck, SquareText, Plus } from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
+import useInterviewStore from "@/store/useInterviewStore";
 
 interface Resume {
   _id: string;
@@ -20,7 +21,8 @@ interface Resume {
 }
 
 const Resumes = () => {
-  const [selectedResume, setSelectedResume] = useState<string | null>(null);
+  const { selectedResumeId, setSelectedResumeId } = useInterviewStore();
+  // const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [count, setCount] = useState(0);
   const [profileReadiness, setProfileReadiness] = useState(0);
@@ -31,14 +33,13 @@ const Resumes = () => {
   const [refreshResumes, setRefreshResumes] = useState(0);
 
   useEffect(() => {
-    if (!selectedResume) {
-      // setProfileReadiness(0);
+    if (!selectedResumeId) {
       return;
     }
 
     const fetchAnalysis = async () => {
       try {
-        const response = await api.get(`/analysis/${selectedResume}`);
+        const response = await api.get(`/analysis/${selectedResumeId}`);
 
         setProfileReadiness(response.data.analysis?.overallScore || 0);
       } catch (error: unknown) {
@@ -51,13 +52,12 @@ const Resumes = () => {
           console.error("Failed to fetch profile readiness:", error);
         }
 
-        // No analysis exists yet
         setProfileReadiness(0);
       }
     };
 
     fetchAnalysis();
-  }, [selectedResume]);
+  }, [selectedResumeId]);
 
   useEffect(() => {
     const loadResumes = async () => {
@@ -67,8 +67,8 @@ const Resumes = () => {
 
         setResumes(resumeList);
 
-        if (resumeList.length > 0) {
-          setSelectedResume(resumeList[0]._id);
+        if (resumeList.length > 0 && !selectedResumeId) {
+          setSelectedResumeId(resumeList[0]._id);
         }
 
         setCount(response.data.count);
@@ -78,7 +78,7 @@ const Resumes = () => {
     };
 
     loadResumes();
-  }, [refreshResumes]);
+  }, [refreshResumes, selectedResumeId, setSelectedResumeId]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -137,7 +137,7 @@ const Resumes = () => {
   };
 
   const selectedResumeData = resumes.find(
-    (resume) => resume._id === selectedResume,
+    (resume) => resume._id === selectedResumeId,
   );
 
   return (
@@ -261,13 +261,13 @@ const Resumes = () => {
 
             <div className="space-y-3">
               {resumes.map((resume) => {
-                const active = selectedResume === resume._id;
+                const active = selectedResumeId === resume._id;
 
                 return (
                   <button
                     key={resume._id}
                     type="button"
-                    onClick={() => setSelectedResume(resume._id)}
+                    onClick={() => setSelectedResumeId(resume._id)}
                     className={`w-full rounded-2xl border bg-white p-5 text-left transition ${
                       active
                         ? "border-violet-300 ring-2 ring-violet-500/10"
@@ -499,8 +499,8 @@ const Resumes = () => {
             <div className="mt-6">
               <Link
                 href={
-                  selectedResume
-                    ? `/analysis?resumeId=${selectedResume}`
+                  selectedResumeId
+                    ? `/analysis?resumeId=${selectedResumeId}`
                     : "/analysis"
                 }
                 className="flex h-10 items-center justify-center rounded-lg bg-gray-950 text-[11px] font-semibold text-white transition hover:bg-black"

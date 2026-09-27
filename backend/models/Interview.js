@@ -20,6 +20,30 @@ const interviewSchema = new mongoose.Schema(
       default: null,
     },
 
+    questionType: {
+      type: String,
+      enum: [
+        "all",
+        "technical",
+        "behavioral",
+        "resume",
+        "skill-gaps",
+      ],
+      default: "all",
+    },
+
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard", "mixed"],
+      default: "mixed",
+    },
+
+    questionCount: {
+      type: Number,
+      enum: [5, 10, 15, 20],
+      default: 10,
+    },
+
     questions: [
       {
         question: {

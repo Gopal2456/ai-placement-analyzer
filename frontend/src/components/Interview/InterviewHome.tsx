@@ -1,10 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { isAxiosError } from "axios";
+import api from "@/api/axios";
+import useInterviewStore from "@/store/useInterviewStore";
 
 const InterviewHome = () => {
+  const router = useRouter();
+
+  const { selectedResumeId, selectedJobId } = useInterviewStore();
+
   const [category, setCategory] = useState("All");
   const [difficulty, setDifficulty] = useState("Mixed");
+  const [questionCount, setQuestionCount] = useState(10);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const categories = [
     {
@@ -40,6 +52,52 @@ const InterviewHome = () => {
   ];
 
   const difficulties = ["Easy", "Medium", "Hard", "Mixed"];
+
+  const handleStartInterview = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.post("/interview/generate", {
+        resumeId: selectedResumeId,
+        jobId: selectedJobId,
+
+        questionType:
+          category === "All"
+            ? "all"
+            : category === "Technical"
+              ? "technical"
+              : category === "Behavioral"
+                ? "behavioral"
+                : category === "Resume"
+                  ? "resume"
+                  : "skill-gaps",
+
+        difficulty: difficulty.toLowerCase(),
+
+        questionCount,
+      });
+
+      const interview = response.data.interview;
+
+      console.log("Interview created:", interview);
+
+      // Navigate to interview session
+      router.push(`/interview/questions/${interview._id}`);
+    } catch (error: unknown) {
+      console.error("Generate interview error:", error);
+
+      if (isAxiosError(error)) {
+        setError(
+          error.response?.data?.message || "Failed to generate interview.",
+        );
+      } else {
+        setError("Failed to generate interview.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 px-8 py-7 text-gray-900">
@@ -208,12 +266,13 @@ const InterviewHome = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  {["5", "10", "15", "20"].map((number, index) => (
+                  {[5, 10, 15, 20].map((number) => (
                     <button
                       key={number}
                       type="button"
+                      onClick={() => setQuestionCount(number)}
                       className={`rounded-lg border px-5 py-2.5 text-xs font-semibold transition ${
-                        index === 1
+                        questionCount === number
                           ? "border-violet-300 bg-violet-50 text-violet-700"
                           : "border-gray-200 text-gray-500 hover:border-gray-300"
                       }`}
@@ -224,13 +283,30 @@ const InterviewHome = () => {
                 </div>
               </div>
 
+              {error && (
+                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-xs font-medium text-red-600">{error}</p>
+                </div>
+              )}
+
               {/* Start */}
               <button
                 type="button"
-                className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black"
+                onClick={handleStartInterview}
+                disabled={loading}
+                className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Start interview
-                <span>→</span>
+                {loading ? (
+                  <>
+                    Generating interview...
+                    <span className="animate-spin">◌</span>
+                  </>
+                ) : (
+                  <>
+                    Start interview
+                    <span>→</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -243,13 +319,11 @@ const InterviewHome = () => {
                 ✦
               </div>
 
-              <h3 className="text-lg font-semibold">
-                AI-powered practice
-              </h3>
+              <h3 className="text-lg font-semibold">AI-powered practice</h3>
 
               <p className="mt-2 text-sm leading-6 text-gray-400">
-                Questions are generated around your target role, resume,
-                missing skills, and previous analysis.
+                Questions are generated around your target role, resume, missing
+                skills, and previous analysis.
               </p>
 
               <div className="mt-6 space-y-3">
@@ -270,9 +344,7 @@ const InterviewHome = () => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">
-                    Average score
-                  </span>
+                  <span className="text-xs text-gray-400">Average score</span>
 
                   <span className="text-sm font-semibold text-emerald-400">
                     82%
@@ -355,7 +427,7 @@ const PracticeItem = ({
     <div className="flex gap-3">
       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-xs font-bold text-violet-600">
         ✓
-      </div> 
+      </div>
 
       <div>
         <p className="text-xs font-semibold text-gray-800">{title}</p>
