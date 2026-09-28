@@ -12,7 +12,7 @@ interface Resume {
 }
 
 interface Job {
-  id: string;
+  _id: string;
   title: string;
   company: string;
   description: string;
@@ -136,7 +136,7 @@ const AnalysisContent = () => {
 
       const normalized = (response.data.jobs || []).map((j: Job) => ({
         ...j,
-        id: j.id,
+        id: j._id,
       }));
       setJobs(normalized);
 
@@ -273,7 +273,7 @@ const AnalysisContent = () => {
     );
   }
 
-  const selectedJobData = jobs.find((job) => job.id === selectedJob);
+  const selectedJobData = jobs.find((job) => job._id === selectedJob);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -414,7 +414,7 @@ const AnalysisContent = () => {
                 <option value="">Select Job</option>
 
                 {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
+                  <option key={job._id} value={job._id}>
                     {job.title}
                     {job.company ? ` — ${job.company}` : ""}
                   </option>
