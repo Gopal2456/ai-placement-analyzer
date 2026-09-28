@@ -44,13 +44,23 @@ const TYPE_LABEL: Record<string, string> = {
 const scoreOutOf10 = (score: number | null) =>
   score === null ? null : Math.round(score * 10);
 
-const scoreColor = (score: number | null) => {
-  if (score === null) return "#6B7280";
+// Returns Tailwind classes for text + left border based on score
+const scoreTone = (score: number | null) => {
+  if (score === null)
+    return { text: "text-gray-500", border: "border-l-gray-300" };
   const s10 = scoreOutOf10(score) ?? 0;
-  if (s10 >= 7) return "#1E7A4C";
-  if (s10 >= 4) return "#B98900";
-  return "#B3261E";
+  if (s10 >= 7)
+    return { text: "text-emerald-600", border: "border-l-emerald-500" };
+  if (s10 >= 4)
+    return { text: "text-amber-600", border: "border-l-amber-500" };
+  return { text: "text-red-600", border: "border-l-red-500" };
 };
+
+const Chip = ({ children }: { children: React.ReactNode }) => (
+  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+    {children}
+  </span>
+);
 
 const InterviewQuestions = () => {
   const params = useParams();
@@ -108,14 +118,8 @@ const InterviewQuestions = () => {
         answers: formattedAnswers,
       });
 
-      // Log the raw shape once so it's easy to see what the backend
-      // actually sent back if this ever looks wrong again.
       console.log("Submit response:", response.data);
 
-      // Try the shapes a backend might reasonably use. If none of them
-      // contain a `questions` array, fall back to re-fetching the
-      // interview (which, per the GET sample, does include per-question
-      // score/feedback after evaluation).
       const candidate: Partial<Interview> | undefined =
         response.data?.interview ??
         response.data?.evaluation ??
@@ -154,8 +158,8 @@ const InterviewQuestions = () => {
   if (loading) {
     return (
       <div className="flex min-h-100 items-center justify-center">
-        <div className="flex items-center gap-3 text-[#6B7280]">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#2F5D50] border-t-transparent" />
+        <div className="flex items-center gap-3 text-gray-500">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-600 border-t-transparent" />
           <p className="text-sm">Loading your interview…</p>
         </div>
       </div>
@@ -165,7 +169,7 @@ const InterviewQuestions = () => {
   if (error) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <div className="rounded-lg border border-[#E2A69A] bg-[#FBEEEC] px-5 py-4 text-sm text-[#8A2F1F]">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
           {error}
         </div>
       </div>
@@ -175,7 +179,7 @@ const InterviewQuestions = () => {
   if (!interview) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <p className="text-sm text-[#6B7280]">
+        <p className="text-sm text-gray-500">
           This interview couldn&apos;t be found.
         </p>
       </div>
@@ -200,87 +204,100 @@ const InterviewQuestions = () => {
 
     return (
       <div className="min-h-screen">
-        {/* Summary header */}
-        <div className="sticky top-0 z-10 border-b border-[#E2E1DC] backdrop-blur">
-          <div className="mx-auto px-4 py-5 sm:px-6">
-            <div className="flex items-baseline justify-between">
-              <h1 className="text-2xl text-[#1C2321]">Interview results</h1>
-              <span
-                className="text-sm font-medium"
-                style={{ color: scoreColor(avgScore10 / 10) }}
-              >
-                Avg score: {avgScore10}/10
-              </span>
-            </div>
-            <div className="mt-3 flex items-center gap-3 text-sm text-[#6B7280]">
-              <span>
-                Question Type: {(result.questionType ?? "n/a").toUpperCase()}
-              </span>
-              <span className="text-[#D8D6CE]">·</span>
-              <span>
-                Difficulty: {(result.difficulty ?? "n/a").toUpperCase()}
-              </span>
-              <span className="text-[#D8D6CE]">·</span>
-              <span>{total} questions</span>
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+          {/* Page heading */}
+          <p className="text-sm font-medium text-violet-600">
+            Interview Practice
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
+            Interview results
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Here&apos;s how you did, with feedback and a suggested answer for
+            each question.
+          </p>
+
+          {/* Dark summary card */}
+          <div className="mt-6 rounded-3xl bg-[#0B0B14] p-6 text-white shadow-lg sm:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <p className="text-sm text-gray-400">Average score</p>
+                <p className="mt-1 text-4xl font-bold tracking-tight text-emerald-400">
+                  {avgScore10}
+                  <span className="text-xl text-gray-500">/10</span>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm">
+                <div>
+                  <p className="text-gray-400">Question type</p>
+                  <p className="mt-1 font-semibold uppercase">
+                    {result.questionType ?? "n/a"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Difficulty</p>
+                  <p className="mt-1 font-semibold uppercase">
+                    {result.difficulty ?? "n/a"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Questions</p>
+                  <p className="mt-1 font-semibold">{total}</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="mx-auto px-4 py-8 sm:px-6">
-          <div className="space-y-5">
+          {/* Result cards */}
+          <div className="mt-6 space-y-5">
             {questions.map((question, index) => {
               const s10 = scoreOutOf10(question.score);
+              const tone = scoreTone(question.score);
               return (
                 <div
                   key={question._id}
-                  className="rounded-lg border border-[#E2E1DC] bg-white p-6"
-                  style={{
-                    borderLeft: `3px solid ${scoreColor(question.score)}`,
-                  }}
+                  className={`rounded-2xl border border-l-4 border-gray-200 bg-white p-6 shadow-sm ${tone.border}`}
                 >
                   <div className="flex items-start gap-4">
-                    <span className="mt-0.5 text-lg text-[#B9B6AA]">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold text-gray-500">
                       {String(index + 1).padStart(2, "0")}
                     </span>
 
                     <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex items-center gap-3 text-xs text-[#6B7280]">
-                        <span>
-                          {TYPE_LABEL[question.type] ?? question.type}
-                        </span>
-                        <span className="text-[#D8D6CE]">·</span>
-                        <span>
+                      <div className="mb-2 flex items-center gap-2">
+                        <Chip>{TYPE_LABEL[question.type] ?? question.type}</Chip>
+                        <Chip>
                           {DIFFICULTY_LABEL[question.difficulty] ??
                             question.difficulty}
-                        </span>
+                        </Chip>
                         <span
-                          className="ml-auto rounded-full bg-[#F1F0EA] px-2.5 py-0.5 font-medium"
-                          style={{ color: scoreColor(question.score) }}
+                          className={`ml-auto rounded-full bg-gray-50 px-3 py-1 text-sm font-bold ring-1 ring-gray-200 ${tone.text}`}
                         >
                           {s10 ?? "—"}/10
                         </span>
                       </div>
 
-                      <h2 className="text-lg leading-7 text-[#1C2321]">
+                      <h2 className="text-lg font-semibold leading-7 text-gray-900">
                         {question.question}
                       </h2>
 
                       {/* User's answer */}
-                      <div className="mt-4 rounded-md border border-[#E2E1DC] bg-[#FBFBFA] p-4">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#A6A49A]">
+                      <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
                           Your answer
                         </p>
-                        <p className="text-sm text-[#1C2321] whitespace-pre-wrap">
+                        <p className="whitespace-pre-wrap text-sm text-gray-800">
                           {question.answer || "(no answer provided)"}
                         </p>
                       </div>
 
                       {/* Feedback */}
                       <div className="mt-4">
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#A6A49A]">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
                           Feedback
                         </p>
-                        <p className="text-sm text-[#1C2321]">
+                        <p className="text-sm leading-6 text-gray-700">
                           {question.feedback}
                         </p>
                       </div>
@@ -288,11 +305,11 @@ const InterviewQuestions = () => {
                       {/* Strengths / Improvements */}
                       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {(question.strengths ?? []).length > 0 && (
-                          <div>
-                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#1E7A4C]">
+                          <div className="rounded-xl bg-emerald-50 p-4">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
                               Strengths
                             </p>
-                            <ul className="list-disc space-y-1 pl-4 text-sm text-[#1C2321]">
+                            <ul className="list-disc space-y-1 pl-4 text-sm text-gray-800 marker:text-emerald-500">
                               {(question.strengths ?? []).map((s, i) => (
                                 <li key={i}>{s}</li>
                               ))}
@@ -300,11 +317,11 @@ const InterviewQuestions = () => {
                           </div>
                         )}
                         {(question.improvements ?? []).length > 0 && (
-                          <div>
-                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#B98900]">
+                          <div className="rounded-xl bg-amber-50 p-4">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-amber-700">
                               Improvements
                             </p>
-                            <ul className="list-disc space-y-1 pl-4 text-sm text-[#1C2321]">
+                            <ul className="list-disc space-y-1 pl-4 text-sm text-gray-800 marker:text-amber-500">
                               {(question.improvements ?? []).map((s, i) => (
                                 <li key={i}>{s}</li>
                               ))}
@@ -315,11 +332,11 @@ const InterviewQuestions = () => {
 
                       {/* Better answer */}
                       {question.betterAnswer && (
-                        <details className="mt-4 rounded-md border border-[#E2E1DC] bg-[#F7F7F5] p-4">
-                          <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-[#6B7280]">
+                        <details className="group mt-4 rounded-xl border border-violet-100 bg-violet-50 p-4">
+                          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-violet-700">
                             Suggested answer
                           </summary>
-                          <p className="mt-2 text-sm text-[#1C2321] whitespace-pre-wrap">
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-800">
                             {question.betterAnswer}
                           </p>
                         </details>
@@ -345,61 +362,78 @@ const InterviewQuestions = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Sticky progress header */}
-      <div className="sticky top-0 z-10 border-b border-[#E2E1DC] backdrop-blur">
-        <div className="mx-auto px-4 py-5 sm:px-6">
-          <div className="flex items-baseline justify-between">
-            <h1 className=" text-2xl text-[#1C2321]">Mock interview</h1>
-            <span className="text-sm text-[#6B7280]">
-              {answeredCount} of {total} answered
-            </span>
+      <div className="mx-auto px-5 py-8 sm:px-7">
+        {/* Page heading */}
+        <p className="text-sm font-medium text-violet-600">
+          Interview Practice
+        </p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
+          Mock interview
+        </h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Answer each question in your own words, then submit for AI feedback.
+        </p>
+
+        {/* Sticky progress card */}
+        <div className="sticky top-3 z-10 mt-6 rounded-2xl border border-gray-200 bg-white/90 p-5 shadow-sm backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Chip>{interview.questionType.toUpperCase()}</Chip>
+              <Chip>{interview.difficulty.toUpperCase()}</Chip>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-gray-900">
+                {progressPct}%
+              </span>{" "}
+              <span className="text-sm font-medium text-emerald-600">
+                {answeredCount} of {total} answered
+              </span>
+            </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-3 text-sm text-[#6B7280]">
-            <span>Question Type: {interview.questionType.toUpperCase()}</span>
-            <span className="text-[#D8D6CE]">·</span>
-            <span>Difficulty: {interview.difficulty.toUpperCase()}</span>
-          </div>
-
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[#E9E8E2]">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
               className="h-full rounded-full bg-violet-600 transition-[width] duration-300 ease-out"
               style={{ width: `${progressPct}%` }}
             />
           </div>
         </div>
-      </div>
 
-      {/* Questions */}
-      <div className="mx-auto px-4 py-8 sm:px-6">
-        <div className="space-y-5">
+        {/* Questions */}
+        <div className="mt-6 space-y-5">
           {questionsList.map((question, index) => {
             const answered = Boolean((answers[question._id] || "").trim());
 
             return (
               <div
                 key={question._id}
-                className="rounded-lg border border-[#E2E1DC] bg-white p-6"
-                style={{
-                  borderLeft: `3px solid ${answered ? "#192791" : "#E2E1DC"}`,
-                }}
+                className={`rounded-2xl border bg-white p-6 shadow-sm transition ${
+                  answered
+                    ? "border-violet-300 bg-violet-50/40"
+                    : "border-gray-200"
+                }`}
               >
                 <div className="flex items-start gap-4">
-                  <span className="mt-0.5  text-lg text-[#B9B6AA]">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold transition ${
+                      answered
+                        ? "bg-violet-600 text-white"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-3 text-xs text-[#6B7280]">
-                      <span>{TYPE_LABEL[question.type] ?? question.type}</span>
-                      <span className="text-[#D8D6CE]">·</span>
-                      <span>
+                    <div className="mb-2 flex items-center gap-2">
+                      <Chip>{TYPE_LABEL[question.type] ?? question.type}</Chip>
+                      <Chip>
                         {DIFFICULTY_LABEL[question.difficulty] ??
                           question.difficulty}
-                      </span>
+                      </Chip>
                     </div>
 
-                    <h2 className=" text-lg leading-7 text-[#1C2321]">
+                    <h2 className="text-lg font-semibold leading-7 text-gray-900">
                       {question.question}
                     </h2>
 
@@ -410,11 +444,15 @@ const InterviewQuestions = () => {
                       }
                       placeholder="Type your answer here…"
                       rows={6}
-                      className="mt-4 w-full resize-none rounded-md border border-[#E2E1DC] bg-[#FBFBFA] p-4 text-sm text-[#1C2321] outline-none transition placeholder:text-[#A6A49A] focus:border-[#2F5D50] focus:bg-white focus:ring-1 focus:ring-[#2F5D50]"
+                      className="mt-4 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-500/20"
                     />
 
-                    <div className="mt-2 flex items-center justify-between text-xs text-[#A6A49A]">
-                      <span>{answered ? "Answered" : "Not answered yet"}</span>
+                    <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                      <span
+                        className={answered ? "font-medium text-violet-600" : ""}
+                      >
+                        {answered ? "Answered" : "Not answered yet"}
+                      </span>
                       <span>
                         {(answers[question._id] || "").length} characters
                       </span>
@@ -427,8 +465,8 @@ const InterviewQuestions = () => {
         </div>
 
         {/* Submit */}
-        <div className="mt-8 flex items-center justify-between border-t border-[#E2E1DC] pt-6">
-          <span className="text-sm text-[#6B7280]">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <span className="text-sm text-gray-500">
             {answeredCount === total
               ? "All questions answered."
               : `${total - answeredCount} question${
@@ -439,7 +477,7 @@ const InterviewQuestions = () => {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="rounded-md bg-violet-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-[#274F44] focus:outline-none focus:ring-2 focus:ring-[#2a2981] focus:ring-offset-2 focus:ring-offset-[#F7F7F5] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Evaluating…" : "Submit interview"}
           </button>
