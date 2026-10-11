@@ -54,6 +54,10 @@ const InterviewHome = () => {
   const difficulties = ["Easy", "Medium", "Hard", "Mixed"];
 
   const handleStartInterview = async () => {
+    if (!selectedResumeId) {
+      setError("Please select a resume first.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");
