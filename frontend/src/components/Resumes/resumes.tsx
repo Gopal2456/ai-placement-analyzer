@@ -22,7 +22,6 @@ interface Resume {
 
 const Resumes = () => {
   const { selectedResumeId, setSelectedResumeId } = useInterviewStore();
-  // const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [count, setCount] = useState(0);
   const [profileReadiness, setProfileReadiness] = useState(0);
@@ -78,7 +77,7 @@ const Resumes = () => {
     };
 
     loadResumes();
-  }, [refreshResumes, selectedResumeId, setSelectedResumeId]);
+  }, [refreshResumes, selectedResumeId]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -274,7 +274,8 @@ const InterviewQuestions = () => {
                         <span
                           className={`ml-auto rounded-full bg-gray-50 px-3 py-1 text-sm font-bold ring-1 ring-gray-200 ${tone.text}`}
                         >
-                          {s10 ?? "—"}/10
+                          {/* {s10 ?? "—"}/10 */}
+                          {question.score}/10
                         </span>
                       </div>
 
