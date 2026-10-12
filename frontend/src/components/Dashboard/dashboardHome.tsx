@@ -154,19 +154,6 @@ const DashboardHome = () => {
                 from one place.
               </p>
             </div>
-
-            <Link
-              href="/analysis/new"
-              className="group inline-flex h-9.5 items-center justify-center gap-2 rounded-lg bg-gray-950 px-3 pr-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 hover:bg-black"
-            >
-              <span className="text-sm leading-none">
-                <Plus className="h-4.5 w-4.5" />
-              </span>
-              New analysis
-              <span className="transition-transform group-hover:translate-x-1">
-                →
-              </span>
-            </Link>
           </div>
 
           {/* Stats */}
@@ -429,7 +416,7 @@ const DashboardHome = () => {
 
               <div className="mt-6 space-y-3">
                 <Link
-                  href="/resumes/upload"
+                  href="/resumes"
                   className="group flex items-center gap-3 rounded-xl border border-gray-100 p-3 transition hover:border-violet-200 hover:bg-violet-50/50"
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-sm text-violet-600">
@@ -452,7 +439,7 @@ const DashboardHome = () => {
                 </Link>
 
                 <Link
-                  href="/jobs/new"
+                  href="/recommended-jobs"
                   className="group flex items-center gap-3 rounded-xl border border-gray-100 p-3 transition hover:border-violet-200 hover:bg-violet-50/50"
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-sm text-violet-600">

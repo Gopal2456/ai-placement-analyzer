@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { isAxiosError } from "axios";
 import api from "@/api/axios";
+import useInterviewStore from "@/store/useInterviewStore";
 
 interface Job {
   _id: string;
@@ -118,7 +119,9 @@ interface JobMatch {
 const analyzeJob = (job: Job): JobMatch => {
   const found = new Map<string, string>();
 
-  (job.skills || []).forEach((skill) => found.set(normalizeSkill(skill), skill));
+  (job.skills || []).forEach((skill) =>
+    found.set(normalizeSkill(skill), skill),
+  );
 
   const text = `${job.title} ${job.description}`.toLowerCase();
   Object.entries(SKILL_KEYWORDS).forEach(([label, keywords]) => {
@@ -170,14 +173,28 @@ const formatSalary = (min: number | null, max: number | null) =>
 
 type JobWithMatch = Job & { match: JobMatch };
 
-const JobCard = ({ job }: { job: JobWithMatch }) => {
+const JobCard = ({
+  job,
+  selected,
+  onToggleSelect,
+}: {
+  job: JobWithMatch;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) => {
   const [open, setOpen] = useState(false);
   const { score, matched, missing } = job.match;
   const label = score !== null ? matchLabel(score) : null;
   const salary = formatSalary(job.salaryMin, job.salaryMax);
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+    <article
+      className={`rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+        selected
+          ? "border-violet-300 ring-2 ring-violet-500/10"
+          : "border-gray-200 hover:border-gray-300"
+      }`}
+    >
       <div className="flex gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-600">
           {job.company?.charAt(0)?.toUpperCase() || "J"}
@@ -243,12 +260,16 @@ const JobCard = ({ job }: { job: JobWithMatch }) => {
           {open && (
             <div className="mt-4 rounded-xl bg-gray-50 p-4 text-xs leading-5 text-gray-600">
               {score === null ? (
-                <p>No skills were listed for this job, so it can&apos;t be scored.</p>
+                <p>
+                  No skills were listed for this job, so it can&apos;t be
+                  scored.
+                </p>
               ) : (
                 <>
                   <p>
-                    You match {matched.length} of {matched.length + missing.length}{" "}
-                    skills found in this listing.
+                    You match {matched.length} of{" "}
+                    {matched.length + missing.length} skills found in this
+                    listing.
                   </p>
                   {missing.length > 0 && (
                     <p className="mt-1">
@@ -283,6 +304,21 @@ const JobCard = ({ job }: { job: JobWithMatch }) => {
                 Why this match?
               </button>
 
+              <button
+                type="button"
+                onClick={onToggleSelect}
+                aria-pressed={selected}
+                className={`h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                  selected
+                    ? "bg-violet-600 text-white hover:bg-violet-700"
+                    : "border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                }`}
+              >
+                {selected
+                  ? "Selected for interview prep ✓"
+                  : "Select for interview preparation"}
+              </button>
+
               {job.url && (
                 <a
                   href={job.url}
@@ -308,6 +344,9 @@ const RecommendedJobs = () => {
   // Values actually used for the API call
   const [query, setQuery] = useState(DEFAULT_QUERY);
   const [location, setLocation] = useState(DEFAULT_CITY);
+
+  const setSelectedJobId = useInterviewStore((s) => s.setSelectedJobId);
+  const selectedJobId = useInterviewStore((s) => s.selectedJobId);
 
   // Value typed in the input (applied on submit)
   const [searchInput, setSearchInput] = useState(DEFAULT_QUERY);
@@ -582,7 +621,16 @@ const RecommendedJobs = () => {
 
             {!loading &&
               !error &&
-              rankedJobs.map((job) => <JobCard key={job._id} job={job} />)}
+              rankedJobs.map((job) => (
+                <JobCard
+                  key={job._id}
+                  job={job}
+                  selected={selectedJobId === job._id}
+                  onToggleSelect={() =>
+                    setSelectedJobId(selectedJobId === job._id ? null : job._id)
+                  }
+                />
+              ))}
           </section>
 
           {/* Sidebar */}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LogoutButton from "@/components/LoginSignup/LogoutButton";
 import {
   FileUser,
@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+import api from "@/api/axios";
 
 const navigation = [
   {
@@ -37,9 +38,32 @@ const navigation = [
   },
 ];
 
+type ProfileData = {
+  user?: {
+    name?: string;
+    email?: string;
+  };
+};
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [data, setData] = React.useState<ProfileData | null>(null);
+
+  useEffect(() => {
+    const getProfileData = async () => {
+      try {
+        const response = await api.get("/auth/me");
+        setData(response.data);
+        console.log("Profile data:", response.data);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+      }
+    };
+
+    getProfileData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -133,16 +157,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="mt-4 border-t border-gray-100 py-4">
                 <div className="flex items-center gap-3 pb-2 rounded-xl">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-xs font-bold text-white">
-                    G
+                    {data?.user?.name
+                      ?.trim()
+                      .split(/\s+/)
+                      .map((word) => word[0])
+                      .join("")
+                      .toUpperCase() || "U"}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-bold text-gray-600">
-                      Gopal
+                      {data?.user?.name || "User"}
                     </p>
 
                     <p className="truncate text-[10px] text-gray-400">
-                      Career Explorer
+                      {data?.user?.email || "User"}
                     </p>
                   </div>
 
@@ -276,16 +305,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="mt-4 border-t border-gray-100 py-4">
                 <div className="flex items-center gap-3 pb-2 rounded-xl">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-blue-500 text-xs font-bold text-white">
-                    G
+                    {data?.user?.name
+                      ?.trim()
+                      .split(/\s+/)
+                      .map((word) => word[0])
+                      .join("")
+                      .toUpperCase() || "U"}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-bold text-gray-600">
-                      Gopal
+                      {data?.user?.name || "User"}
                     </p>
 
                     <p className="truncate text-[10px] text-gray-400">
-                      Career Explorer
+                      {data?.user?.email || "User"}
                     </p>
                   </div>
 

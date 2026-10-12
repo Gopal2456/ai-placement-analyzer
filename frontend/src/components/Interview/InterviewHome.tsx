@@ -9,7 +9,7 @@ import useInterviewStore from "@/store/useInterviewStore";
 const InterviewHome = () => {
   const router = useRouter();
 
-  const { selectedResumeId, selectedJobId } = useInterviewStore();
+  const { selectedResumeId, selectedJobId,  } = useInterviewStore();
 
   const [category, setCategory] = useState("All");
   const [difficulty, setDifficulty] = useState("Mixed");
@@ -131,38 +131,6 @@ const InterviewHome = () => {
                 Interview readiness
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Target Role */}
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-lg font-bold text-violet-600">
-                FE
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                  Preparing for
-                </p>
-
-                <h2 className="mt-1 text-base font-semibold text-gray-950">
-                  Frontend Developer
-                </h2>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Your latest resume · Latest analysis
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="text-left text-sm font-semibold text-violet-600 transition hover:text-violet-700 sm:text-right"
-            >
-              Change role →
-            </button>
           </div>
         </div>
 
@@ -384,34 +352,6 @@ const InterviewHome = () => {
                   description="Areas identified in your analysis"
                 />
               </div>
-            </div>
-
-            {/* Previous Session */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-400">Last session</p>
-
-                  <p className="mt-1 text-sm font-semibold text-gray-950">
-                    Frontend Interview
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-950">84%</p>
-
-                  <p className="text-[11px] text-emerald-600">
-                    Good performance
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="mt-4 w-full rounded-lg bg-gray-50 py-2.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
-              >
-                View feedback
-              </button>
             </div>
           </div>
         </div>
