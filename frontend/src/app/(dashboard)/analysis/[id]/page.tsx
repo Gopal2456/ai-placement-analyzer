@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useAnalysisDetail } from "./Useanalysisdetail";
-import AnalysisDetailView from "@/components/dashboard/Analysisdetailview";
+import AnalysisDetailView from "@/components/dashboard/Analysisdetailview"; 
 
 const AnalysisDetailPage = () => {
   const router = useRouter();
