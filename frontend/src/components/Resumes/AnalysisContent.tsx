@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { isAxiosError } from "axios";
 import api from "@/api/axios";
+import { ArrowLeft, ArrowRight, ChevronRight, Loader } from "lucide-react";
+import { toast } from "react-toastify";
+import Image from "next/image";
 
 interface Resume {
   _id: string;
@@ -51,6 +54,7 @@ interface ApiErrorResponse {
 }
 
 const AnalysisContent = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   const resumeId = searchParams.get("resumeId");
@@ -62,6 +66,7 @@ const AnalysisContent = () => {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
@@ -124,24 +129,25 @@ const AnalysisContent = () => {
   }, []);
 
   const searchJobs = async () => {
-    if (!jobSearch.trim()) return;
+    if (!jobSearch.trim() || searchLoading) return;
 
     try {
-      setLoading(true);
+      setSearchLoading(true);
       setError("");
 
       const response = await api.get<JobsResponse>(
         `/jobs/import?query=${encodeURIComponent(jobSearch)}&limit=10`,
       );
 
+      toast.success("You can now select a job.");
+
       const normalized = (response.data.jobs || []).map((j: Job) => ({
         ...j,
         id: j._id,
       }));
       setJobs(normalized);
-
-      // setJobs(response.data.jobs || []);
     } catch (error: unknown) {
+      toast.error("Failed to search jobs.");
       console.error("Search jobs error:", error);
 
       if (isAxiosError<ApiErrorResponse>(error)) {
@@ -150,7 +156,7 @@ const AnalysisContent = () => {
         setError("Failed to search jobs.");
       }
     } finally {
-      setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -229,7 +235,14 @@ const AnalysisContent = () => {
           <div className="relative flex h-16 w-16 items-center justify-center">
             <div className="absolute h-16 w-16 animate-spin rounded-full border-4 border-gray-100 border-t-violet-600" />
 
-            <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" />
+            {/* <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" /> */}
+            <Image
+              src="/Logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="animate-pulse"
+            />
           </div>
 
           <p className="mt-6 text-sm font-semibold text-gray-800">Loading...</p>
@@ -279,18 +292,31 @@ const AnalysisContent = () => {
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
         {/* Header */}
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-600">
-            Job Match Analyzer
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-600">
+              Job Match Analyzer
+            </p>
 
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-800">
-            Analyze Job Match
-          </h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-800">
+              Analyze Job Match
+            </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Compare your resume with a job and discover your skill match.
-          </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Compare your resume with a job and discover your skill match.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-gray-500 transition hover:text-gray-900"
+            >
+              Back
+              <ChevronRight  className="h-4.5 w-4.5 text-rose-500" />
+            </button>
+          </div>
         </div>
 
         {/* Resume + Job Selection */}
@@ -319,51 +345,6 @@ const AnalysisContent = () => {
               </div>
             </div>
 
-            {/* Job */}
-            {/* <div className="mt-6">
-              <label
-                htmlFor="job"
-                className="text-xs font-semibold text-gray-800"
-              >
-                Job
-              </label>
-
-              <select
-                id="job"
-                value={selectedJob}
-                onChange={(e) => {
-                  setSelectedJob(e.target.value);
-                  setError("");
-                }}
-                className="mt-2 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10"
-              >
-                <option value="">Select Job</option>
-
-                <button
-                  type="button"
-                  onClick={searchJobs}
-                  className="mt-3 rounded-xl bg-gray-950 px-5 py-3 text-sm font-semibold text-white"
-                >
-                  Search Jobs
-                </button>
-
-                {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title}
-                    {job.company ? ` — ${job.company}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <input
-              type="text"
-              value={jobSearch}
-              onChange={(e) => setJobSearch(e.target.value)}
-              placeholder="Enter job role e.g. React Developer"
-              className="h-11 w-full rounded-xl border text-black border-gray-200 px-4 text-sm"
-            /> */}
-
             {/* Job search */}
             <div className="mt-6">
               <label
@@ -379,6 +360,7 @@ const AnalysisContent = () => {
                   type="text"
                   value={jobSearch}
                   onChange={(e) => setJobSearch(e.target.value)}
+                  disabled={searchLoading}
                   placeholder="Enter job role e.g. React Developer"
                   className="h-11 w-full rounded-xl border text-black border-gray-200 px-4 text-sm"
                 />
@@ -386,9 +368,17 @@ const AnalysisContent = () => {
                 <button
                   type="button"
                   onClick={searchJobs}
-                  className="h-11 shrink-0 rounded-xl bg-gray-950 px-5 text-sm font-semibold text-white"
+                  disabled={searchLoading}
+                  className="flex h-11 min-w-27.5 shrink-0 items-center justify-center gap-2 rounded-xl bg-gray-950 px-5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Search
+                  {searchLoading ? (
+                    <>
+                      Searching...
+                      <Loader className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    "Search"
+                  )}
                 </button>
               </div>
             </div>
@@ -480,7 +470,14 @@ const AnalysisContent = () => {
               <div className="relative mx-auto flex h-16 w-16 items-center justify-center">
                 <div className="absolute h-16 w-16 animate-spin rounded-full border-4 border-gray-100 border-t-violet-600" />
 
-                <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" />
+                {/* <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" /> */}
+                <Image
+                  src="/Logo.png"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="animate-pulse"
+                />
               </div>
 
               <p className="mt-6 text-sm font-semibold text-gray-800">

@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ListCheck, SquareText, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  ListCheck,
+  SquareText,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ArrowUpToLine,
+} from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
@@ -224,16 +231,12 @@ const Resumes = () => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-3 pr-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {uploading ? "Uploading..." : "Upload"}
+
               <span className="text-lg leading-none">
-                <Plus className="h-5 w-5" />
-              </span>
-
-              {uploading ? "Uploading..." : "Upload resume"}
-
-              <span className="transition-transform group-hover:translate-x-1">
-                →
+                <ArrowUpToLine  className="h-5 w-5" />
               </span>
             </button>
           </div>
@@ -336,7 +339,7 @@ const Resumes = () => {
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <div className="flex items-center gap-2">
-                                <h3 className="truncate text-sm font-semibold text-gray-900">
+                                <h3 className="truncate sm:max-w-full max-w-36 text-sm font-semibold text-gray-900">
                                   {resume.fileName}
                                 </h3>
 
