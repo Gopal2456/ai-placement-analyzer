@@ -11,6 +11,7 @@ const jobRoutes = require("./routes/job.routes");
 const analysisRoutes = require("./routes/analysis.routes");
 const interviewRoutes = require("./routes/interview.routes");
 const ragRoutes = require("./routes/rag.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
 
 const app = express();
 
@@ -65,7 +66,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/interview", interviewRoutes);
 app.use("/api/analysis", analysisRoutes);
 app.use("/api/rag", ragRoutes);
-
+app.use("/api/dashboard", dashboardRoutes);
 /* -------------------- 404 -------------------- */
 
 app.use((req, res) => {
