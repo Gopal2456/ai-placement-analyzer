@@ -122,16 +122,6 @@ const InterviewHome = () => {
               target job, and skill gaps.
             </p>
           </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-xs text-gray-400">Your progress</p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-lg font-bold text-gray-950">68%</span>
-              <span className="text-xs font-medium text-emerald-600">
-                Interview readiness
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Main Grid */}
@@ -331,7 +321,7 @@ const InterviewHome = () => {
                 What you&apos;ll practice
               </h3>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-7 space-y-6">
                 <PracticeItem
                   title="Technical knowledge"
                   description="Role-specific technical concepts"
