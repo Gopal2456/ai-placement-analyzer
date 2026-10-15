@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import useInterviewStore from "@/store/useInterviewStore";
 
+
 interface Resume {
   _id: string;
   fileName: string;
@@ -243,7 +244,7 @@ const Resumes = () => {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -313,7 +314,7 @@ const Resumes = () => {
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="custom-scrollbar max-h-120 space-y-3 overflow-y-auto p-1 pr-2">
               {resumes.map((resume) => {
                 const active = selectedResumeId === resume._id;
                 const isDeleting = deletingId === resume._id;

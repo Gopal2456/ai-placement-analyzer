@@ -5,6 +5,7 @@ import Link from "next/link";
 import { isAxiosError } from "axios";
 import api from "@/api/axios";
 import useInterviewStore from "@/store/useInterviewStore";
+import { useSelectedResume } from "@/hooks/useSelectedResume";
 
 interface Job {
   _id: string;
@@ -62,17 +63,17 @@ const INDIAN_CITIES = [
 ];
 
 // TODO: replace with the skills from the user's parsed resume
-const USER_SKILLS = [
-  "React",
-  "Next.js",
-  "TypeScript",
-  "JavaScript",
-  "Node.js",
-  "MongoDB",
-  "Tailwind CSS",
-  "REST API",
-  "Git",
-];
+// const USER_SKILLS = [
+//   "React",
+//   "Next.js",
+//   "TypeScript",
+//   "JavaScript",
+//   "Node.js",
+//   "MongoDB",
+//   "Tailwind CSS",
+//   "REST API",
+//   "Git",
+// ];
 
 // Used to detect skills in job descriptions when the API returns none
 const SKILL_KEYWORDS: Record<string, string[]> = {
@@ -116,14 +117,15 @@ interface JobMatch {
   missing: string[];
 }
 
-const analyzeJob = (job: Job): JobMatch => {
+const analyzeJob = (job: Job, userSkills: string[]): JobMatch => {
   const found = new Map<string, string>();
 
-  (job.skills || []).forEach((skill) =>
-    found.set(normalizeSkill(skill), skill),
-  );
+  (job.skills || []).forEach((skill) => {
+    found.set(normalizeSkill(skill), skill);
+  });
 
   const text = `${job.title} ${job.description}`.toLowerCase();
+
   Object.entries(SKILL_KEYWORDS).forEach(([label, keywords]) => {
     if (keywords.some((keyword) => hasWord(text, keyword))) {
       const key = normalizeSkill(label);
@@ -131,7 +133,7 @@ const analyzeJob = (job: Job): JobMatch => {
     }
   });
 
-  const userKeys = new Set(USER_SKILLS.map(normalizeSkill));
+  const userKeys = new Set(userSkills.map(normalizeSkill));
   const matched: string[] = [];
   const missing: string[] = [];
 
@@ -147,6 +149,38 @@ const analyzeJob = (job: Job): JobMatch => {
     missing,
   };
 };
+
+// const analyzeJob = (job: Job): JobMatch => {
+//   const found = new Map<string, string>();
+
+//   (job.skills || []).forEach((skill) =>
+//     found.set(normalizeSkill(skill), skill),
+//   );
+
+//   const text = `${job.title} ${job.description}`.toLowerCase();
+//   Object.entries(SKILL_KEYWORDS).forEach(([label, keywords]) => {
+//     if (keywords.some((keyword) => hasWord(text, keyword))) {
+//       const key = normalizeSkill(label);
+//       if (!found.has(key)) found.set(key, label);
+//     }
+//   });
+
+//   const userKeys = new Set(USER_SKILLS.map(normalizeSkill));
+//   const matched: string[] = [];
+//   const missing: string[] = [];
+
+//   found.forEach((label, key) => {
+//     (userKeys.has(key) ? matched : missing).push(label);
+//   });
+
+//   const total = matched.length + missing.length;
+
+//   return {
+//     score: total > 0 ? Math.round((matched.length / total) * 100) : null,
+//     matched,
+//     missing,
+//   };
+// };
 
 const timeAgo = (date?: string) => {
   if (!date) return "";
@@ -189,21 +223,23 @@ const JobCard = ({
 
   return (
     <article
-      className={`rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+      className={`rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md sm:p-6 ${
         selected
           ? "border-violet-300 ring-2 ring-violet-500/10"
           : "border-gray-200 hover:border-gray-300"
       }`}
     >
-      <div className="flex gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-600">
+      <div className="flex gap-3 sm:gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-bold text-blue-600 sm:h-12 sm:w-12">
           {job.company?.charAt(0)?.toUpperCase() || "J"}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h3 className="text-base font-bold text-gray-950">{job.title}</h3>
+              <h3 className="wrap-break-word text-base font-bold text-gray-950">
+                {job.title}
+              </h3>
 
               <p className="mt-1 text-sm text-gray-600">
                 {job.company || "Company not specified"}
@@ -283,7 +319,7 @@ const JobCard = ({
           )}
 
           <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-400">
               <span>{timeAgo(job.createdAt) || `Source: ${job.source}`}</span>
               {label && (
                 <>
@@ -295,11 +331,11 @@ const JobCard = ({
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="h-10 rounded-lg border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="order-1 h-10 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 sm:order-0 sm:px-4"
               >
                 Why this match?
               </button>
@@ -308,15 +344,15 @@ const JobCard = ({
                 type="button"
                 onClick={onToggleSelect}
                 aria-pressed={selected}
-                className={`h-10 rounded-lg px-4 text-xs font-semibold transition ${
+                className={`order-3 col-span-2 h-10 rounded-lg px-3 text-xs font-semibold transition sm:order-0 sm:col-span-1 sm:px-4 ${
                   selected
                     ? "bg-violet-600 text-white hover:bg-violet-700"
                     : "border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
                 }`}
               >
                 {selected
-                  ? "Selected for interview prep ✓"
-                  : "Select for interview preparation"}
+                  ? "Selected for interview prep"
+                  : "Select for interview prep"}
               </button>
 
               {job.url && (
@@ -324,7 +360,7 @@ const JobCard = ({
                   href={job.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 items-center justify-center rounded-lg bg-gray-950 px-5 text-xs font-semibold text-white transition hover:bg-black"
+                  className="order-2 flex h-10 items-center justify-center rounded-lg bg-gray-950 px-3 text-xs font-semibold text-white transition hover:bg-black sm:order-0 sm:px-5"
                 >
                   View job →
                 </a>
@@ -337,10 +373,13 @@ const JobCard = ({
   );
 };
 
-const DEFAULT_QUERY = "Full Stack Developer";
+const DEFAULT_QUERY = "MERN Stack Developer";
 const DEFAULT_CITY = "Pune";
 
 const RecommendedJobs = () => {
+  const { selectedResume, loading: resumeLoading } = useSelectedResume();
+
+  const userSkills = selectedResume?.skills ?? [];
   // Values actually used for the API call
   const [query, setQuery] = useState(DEFAULT_QUERY);
   const [location, setLocation] = useState(DEFAULT_CITY);
@@ -405,10 +444,40 @@ const RecommendedJobs = () => {
   const rankedJobs: JobWithMatch[] = useMemo(
     () =>
       jobs
-        .map((job) => ({ ...job, match: analyzeJob(job) }))
+        .map((job) => ({
+          ...job,
+          match: analyzeJob(job, userSkills),
+        }))
         .sort((a, b) => (b.match.score ?? -1) - (a.match.score ?? -1)),
-    [jobs],
+    [jobs, userSkills],
   );
+
+  const scoredJobs = rankedJobs.filter((job) => job.match.score !== null);
+
+  const matchReadiness =
+    scoredJobs.length > 0
+      ? Math.round(
+          scoredJobs.reduce((total, job) => total + (job.match.score ?? 0), 0) /
+            scoredJobs.length,
+        )
+      : null;
+
+  const readinessLabel =
+    matchReadiness === null
+      ? "Not available"
+      : matchReadiness >= 80
+        ? "Strong match"
+        : matchReadiness >= 60
+          ? "Good match"
+          : "Needs improvement";
+
+  // const rankedJobs: JobWithMatch[] = useMemo(
+  //   () =>
+  //     jobs
+  //       .map((job) => ({ ...job, match: analyzeJob(job) }))
+  //       .sort((a, b) => (b.match.score ?? -1) - (a.match.score ?? -1)),
+  //   [jobs],
+  // );
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -466,8 +535,7 @@ const RecommendedJobs = () => {
         {/* AI Summary */}
         <section className="relative overflow-hidden rounded-2xl bg-gray-950 p-6 text-white shadow-sm">
           <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-violet-600 opacity-20 blur-3xl" />
-
-          <div className="relative grid gap-6 md:grid-cols-3 md:items-center">
+          <div className="relative grid grid-cols-1 gap-6 md:grid-cols-3 md:items-center">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-violet-300">
@@ -495,20 +563,43 @@ const RecommendedJobs = () => {
             <div className="rounded-xl border border-white/10 bg-white/5 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-3xl font-bold">87%</p>
-                  <p className="mt-1 text-[10px] text-gray-500">
+                  <p className="text-3xl font-bold">
+                    {matchReadiness !== null ? `${matchReadiness}%` : "—"}
+                  </p>
+
+                  <p className="mt-1 text-[10px] text-gray-400">
                     Profile match average
                   </p>
                 </div>
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500 border-l-white/10 border-b-white/10 text-[10px] font-bold">
-                  87
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-full p-1"
+                  style={{
+                    background: `conic-gradient(#8b5cf6 ${
+                      matchReadiness ?? 0
+                    }%, rgba(255,255,255,0.1) 0)`,
+                  }}
+                >
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-gray-950 text-[10px] font-bold">
+                    {matchReadiness !== null ? matchReadiness : "—"}
+                  </div>
                 </div>
               </div>
 
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-5/6 rounded-full bg-violet-500" />
+                <div
+                  className="h-full rounded-full bg-violet-500 transition-all duration-500"
+                  style={{
+                    width: `${matchReadiness ?? 0}%`,
+                  }}
+                />
               </div>
+
+              <p className="mt-2 text-[10px] text-gray-400">
+                {scoredJobs.length > 0
+                  ? `Based on ${scoredJobs.length} job matches`
+                  : "Search for jobs to calculate your match"}
+              </p>
             </div>
           </div>
         </section>
@@ -554,10 +645,10 @@ const RecommendedJobs = () => {
         </form>
 
         {/* Content */}
-        <div className="mt-7 grid gap-6 lg:grid-cols-3">
+        <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Jobs */}
-          <section className="space-y-4 lg:col-span-2">
-            <div className="flex items-center justify-between">
+          <section className="min-w-0 space-y-4 lg:col-span-2">
+            <div className="flex  items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-gray-950">
                   Available jobs
@@ -619,18 +710,22 @@ const RecommendedJobs = () => {
               </div>
             )}
 
-            {!loading &&
-              !error &&
-              rankedJobs.map((job) => (
-                <JobCard
-                  key={job._id}
-                  job={job}
-                  selected={selectedJobId === job._id}
-                  onToggleSelect={() =>
-                    setSelectedJobId(selectedJobId === job._id ? null : job._id)
-                  }
-                />
-              ))}
+            {!loading && !error && rankedJobs.length > 0 && (
+              <div className="custom-scrollbar space-y-4 lg:max-h-169 lg:overflow-y-auto lg:p-1 lg:pr-2">
+                {rankedJobs.map((job) => (
+                  <JobCard
+                    key={job._id}
+                    job={job}
+                    selected={selectedJobId === job._id}
+                    onToggleSelect={() =>
+                      setSelectedJobId(
+                        selectedJobId === job._id ? null : job._id,
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Sidebar */}
@@ -657,17 +752,31 @@ const RecommendedJobs = () => {
               </div>
 
               <div className="mt-5 flex items-center gap-5">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-8 border-violet-100">
-                  <span className="text-lg font-bold text-gray-950">82%</span>
+                {/* Dynamic circular progress */}
+                <div
+                  className="h-20 w-20 shrink-0 rounded-full p-2"
+                  style={{
+                    background: `conic-gradient(#8b5cf6 ${
+                      matchReadiness ?? 0
+                    }%, #ede9fe 0)`,
+                  }}
+                >
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                    <span className="text-lg font-bold text-gray-950">
+                      {matchReadiness !== null ? `${matchReadiness}%` : "—"}
+                    </span>
+                  </div>
                 </div>
 
                 <div>
                   <p className="text-xs font-bold text-gray-900">
-                    Good profile
+                    {loading ? "Analyzing jobs..." : readinessLabel}
                   </p>
 
                   <p className="mt-1 text-[10px] leading-5 text-gray-400">
-                    Your profile is ready for most frontend roles.
+                    {matchReadiness !== null
+                      ? `Average skills match across ${scoredJobs.length} jobs.`
+                      : "Search for jobs to calculate your skills match."}
                   </p>
                 </div>
               </div>
@@ -690,56 +799,35 @@ const RecommendedJobs = () => {
                 Skills helping your job matches
               </p>
 
-              <div className="mt-5 space-y-4">
-                {[
-                  ["React", "95%"],
-                  ["TypeScript", "88%"],
-                  ["Node.js", "82%"],
-                  ["JavaScript", "80%"],
-                ].map(([skill, score]) => (
-                  <div key={skill}>
-                    <div className="mb-1.5 flex justify-between">
-                      <span className="text-[10px] font-medium text-gray-600">
-                        {skill}
-                      </span>
+              <div className="mt-4 max-h-96 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                {resumeLoading ? (
+                  <p className="text-xs text-gray-400">
+                    Loading resume skills...
+                  </p>
+                ) : userSkills.length > 0 ? (
+                  userSkills.map((skill) => (
+                    <div className="flex flex-col gap-2" key={skill}>
+                      <div className="mb-1.5 flex justify-between">
+                        <span className="text-[10px] font-medium text-gray-600">
+                          {skill}
+                        </span>
 
-                      <span className="text-[10px] font-semibold text-gray-400">
-                        {score}
-                      </span>
+                        <span className="text-[10px] font-semibold text-gray-400">
+                          Resume skill
+                        </span>
+                      </div>
+
+                      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                        <div className="h-full w-full rounded-full bg-violet-500" />
+                      </div>
                     </div>
-
-                    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className="h-full rounded-full bg-violet-500"
-                        style={{ width: score }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    No skills found. Please upload or select a resume.
+                  </p>
+                )}
               </div>
-            </section>
-
-            {/* Improve matches */}
-            <section className="rounded-2xl border border-violet-100 bg-violet-50 p-5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-violet-600 shadow-sm">
-                ✦
-              </div>
-
-              <h3 className="mt-4 text-sm font-bold text-gray-950">
-                Improve your matches
-              </h3>
-
-              <p className="mt-2 text-[10px] leading-5 text-gray-500">
-                Learning Next.js, GraphQL and AWS could increase the number of
-                high-match jobs available to you.
-              </p>
-
-              <Link
-                href="/analysis/latest/skills"
-                className="mt-4 inline-flex text-[10px] font-bold text-violet-600"
-              >
-                View skill roadmap →
-              </Link>
             </section>
           </aside>
         </div>
