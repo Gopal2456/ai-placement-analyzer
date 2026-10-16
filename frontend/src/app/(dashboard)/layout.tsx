@@ -174,13 +174,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       {data?.user?.email || "User"}
                     </p>
                   </div>
-
-                  <button
-                    type="button"
-                    className="text-gray-400 transition hover:text-gray-900"
-                  >
-                    •••
-                  </button>
                 </div>
                 <div className="flex hover:bg-rose-50 hover:text-rose-400 text-sm p-2 rounded-md text-gray-400 items-center gap-2">
                   <LogOut className="h-4 w-4" />
@@ -322,13 +315,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       {data?.user?.email || "User"}
                     </p>
                   </div>
-
-                  <button
-                    type="button"
-                    className="text-gray-400 transition hover:text-gray-900"
-                  >
-                    •••
-                  </button>
                 </div>
                 <div className="flex hover:bg-rose-50 hover:text-rose-400 text-sm p-2 rounded-md text-gray-400 items-center gap-2">
                   <LogOut className="h-4 w-4" />
