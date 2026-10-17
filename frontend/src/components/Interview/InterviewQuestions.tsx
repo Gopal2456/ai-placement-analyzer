@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import api from "@/api/axios";
+import { Loader } from "lucide-react";
 
 interface Question {
   _id: string;
@@ -51,8 +52,7 @@ const scoreTone = (score: number | null) => {
   const s10 = scoreOutOf10(score) ?? 0;
   if (s10 >= 7)
     return { text: "text-emerald-600", border: "border-l-emerald-500" };
-  if (s10 >= 4)
-    return { text: "text-amber-600", border: "border-l-amber-500" };
+  if (s10 >= 4) return { text: "text-amber-600", border: "border-l-amber-500" };
   return { text: "text-red-600", border: "border-l-red-500" };
 };
 
@@ -266,7 +266,9 @@ const InterviewQuestions = () => {
 
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-center gap-2">
-                        <Chip>{TYPE_LABEL[question.type] ?? question.type}</Chip>
+                        <Chip>
+                          {TYPE_LABEL[question.type] ?? question.type}
+                        </Chip>
                         <Chip>
                           {DIFFICULTY_LABEL[question.difficulty] ??
                             question.difficulty}
@@ -450,7 +452,9 @@ const InterviewQuestions = () => {
 
                     <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
                       <span
-                        className={answered ? "font-medium text-violet-600" : ""}
+                        className={
+                          answered ? "font-medium text-violet-600" : ""
+                        }
                       >
                         {answered ? "Answered" : "Not answered yet"}
                       </span>
@@ -477,10 +481,16 @@ const InterviewQuestions = () => {
 
           <button
             onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={submitting || answeredCount !== total || total === 0}
+            className="rounded-xl  gap-2 bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Evaluating…" : "Submit interview"}
+            {submitting ? (
+              <div className="flex items-center gap-2">
+                Evaluating… <Loader className="h-4 w-4 animate-spin" />
+              </div>
+            ) : (
+              <div>Submit interview</div>
+            )}
           </button>
         </div>
       </div>

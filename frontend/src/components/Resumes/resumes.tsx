@@ -8,7 +8,7 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  ArrowUpToLine,
+  Loader,
 } from "lucide-react";
 import api from "@/api/axios";
 import { toast } from "react-toastify";
@@ -232,12 +232,12 @@ const Resumes = () => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-4 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-4 text-base font-medium text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
             >
               {uploading ? "Uploading..." : "Upload"}
 
               <span className="text-lg leading-none">
-                <ArrowUpToLine  className="h-5 w-5" />
+                {uploading ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-5 w-5" />}
               </span>
             </button>
           </div>
@@ -432,7 +432,7 @@ const Resumes = () => {
                 className="mt-4 flex min-h-37.5 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-violet-300 hover:bg-violet-50/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-lg text-violet-600">
-                  {uploading ? "..." : "↑"}
+                  {uploading ? <Loader className="h-5 w-5 animate-spin " /> : "↑"}
                 </div>
 
                 <h3 className="mt-3 text-sm font-semibold text-gray-800">
@@ -467,34 +467,6 @@ const Resumes = () => {
                 </h2>
               </div>
             </div>
-
-            {/* Profile readiness */}
-            {/* <div className="mt-6 rounded-xl bg-gray-950 p-5 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-gray-500">
-                    Profile readiness
-                  </p>
-
-                  <p className="mt-1 text-2xl font-semibold">
-                    {profileReadiness}%
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-violet-500/30 border-t-violet-500 text-[10px] font-semibold">
-                  {profileReadiness}
-                </div>
-              </div>
-
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-[82%] rounded-full bg-violet-500" />
-              </div>
-
-              <p className="mt-3 text-[9px] leading-4 text-gray-500">
-                Your resume is in good shape. Improve a few skills to increase
-                your job match potential.
-              </p>
-            </div> */}
 
             {/* Extracted skills */}
             <div className="mt-6">

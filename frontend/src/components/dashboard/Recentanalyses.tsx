@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { RecentAnalysis } from "@/types/dashboard";
 import { formatRelativeDate, getMatchStatus } from "@/lib/dashboard";
+import { Loader } from "lucide-react";
 
 interface RecentAnalysesProps {
   analyses: RecentAnalysis[];
@@ -35,7 +36,6 @@ const RecentAnalyses = ({ analyses, loading }: RecentAnalysesProps) => {
 
             return (
               <Link
-                // Adjust this route to match your analysis detail page
                 href={`/analysis/${analysis.resumeId}`}
                 key={analysis.resumeId}
                 className={`flex items-center gap-4 p-4 transition hover:bg-gray-50 ${
@@ -66,7 +66,9 @@ const RecentAnalyses = ({ analyses, loading }: RecentAnalysesProps) => {
                   </p>
                 </div>
 
-                <span className="text-gray-300">→</span>
+                {loading && (
+                  <Loader className="h-4 w-4 animate-spin" />
+                )}
               </Link>
             );
           })}

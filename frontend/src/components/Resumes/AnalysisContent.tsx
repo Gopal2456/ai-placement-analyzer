@@ -314,7 +314,7 @@ const AnalysisContent = () => {
               className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-gray-500 transition hover:text-gray-900"
             >
               Back
-              <ChevronRight  className="h-4.5 w-4.5 text-rose-500" />
+              <ChevronRight className="h-4.5 w-4.5 text-rose-500" />
             </button>
           </div>
         </div>
@@ -456,9 +456,16 @@ const AnalysisContent = () => {
               type="button"
               onClick={handleAnalyzeJobMatch}
               disabled={analyzing || !resumeId || !selectedJob}
-              className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gray-950 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {analyzing ? "Analyzing Job Match..." : "Analyze Job Match"}
+              {analyzing ? (
+                <>
+                  Analyzing...
+                  <Loader className="ml-2 h-4 w-4 animate-spin" />
+                </>
+              ) : (
+                "Analyze Job Match"
+              )}
             </button>
           </div>
         )}

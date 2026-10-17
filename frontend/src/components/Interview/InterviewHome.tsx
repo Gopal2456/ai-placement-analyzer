@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { isAxiosError } from "axios";
 import api from "@/api/axios";
 import useInterviewStore from "@/store/useInterviewStore";
+import { Loader } from "lucide-react";
 
 const InterviewHome = () => {
   const router = useRouter();
 
-  const { selectedResumeId, selectedJobId,  } = useInterviewStore();
+  const { selectedResumeId, selectedJobId } = useInterviewStore();
 
   const [category, setCategory] = useState("All");
   const [difficulty, setDifficulty] = useState("Mixed");
@@ -104,7 +105,7 @@ const InterviewHome = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-8 py-7 text-gray-900">
+    <div className="min-h-screen bg-gray-50 px-6 py-7 text-gray-900">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -256,18 +257,15 @@ const InterviewHome = () => {
                 type="button"
                 onClick={handleStartInterview}
                 disabled={loading}
-                className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-8 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-950 text-sm font-semibold text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
                     Generating interview...
-                    <span className="animate-spin">◌</span>
+                    <Loader className="h-4 w-4 animate-spin" />
                   </>
                 ) : (
-                  <>
-                    Start interview
-                    <span>→</span>
-                  </>
+                  <button className="cursor-pointer">Start interview</button>
                 )}
               </button>
             </div>
