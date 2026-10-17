@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useAnalysisDetail } from "./Useanalysisdetail";
 import AnalysisDetailView from "@/components/dashboard/Analysisdetailview"; 
+import Image from "next/image";
 
 const AnalysisDetailPage = () => {
   const router = useRouter();
@@ -16,7 +17,13 @@ const AnalysisDetailPage = () => {
         <div className="flex w-full max-w-md flex-col items-center rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
           <div className="relative flex h-16 w-16 items-center justify-center">
             <div className="absolute h-16 w-16 animate-spin rounded-full border-4 border-gray-100 border-t-violet-600" />
-            <div className="h-8 w-8 animate-pulse rounded-full bg-violet-100" />
+            <Image
+              src="/Logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="relative z-10"
+            />
           </div>
 
           <p className="mt-6 text-sm font-semibold text-gray-800">
