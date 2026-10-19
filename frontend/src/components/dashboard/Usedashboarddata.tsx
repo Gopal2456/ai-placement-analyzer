@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
+
 import type {
   DashboardStats,
   LatestAnalysis,
@@ -11,80 +12,118 @@ import type {
 } from "@/types/dashboard";
 
 export const useDashboardData = () => {
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [latest, setLatest] = useState<LatestAnalysis | null>(null);
-  const [recent, setRecent] = useState<RecentAnalysis[]>([]);
-  const [recommendation, setRecommendation] = useState<Recommendation | null>(
-    null,
-  );
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // 1. Profile
+  const profileQuery = useQuery({
+    queryKey: ["dashboard", "profile"],
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      setError("");
-
-      // allSettled: one failing endpoint shouldn't blank the whole dashboard
-      const [profileRes, statsRes, latestRes, recentRes, recommendationRes] =
-        await Promise.allSettled([
-          api.get<ProfileData>("/auth/me"),
-          api.get<{ stats: DashboardStats }>("/dashboard/stats"),
-          api.get<{ analysis: LatestAnalysis | null }>(
-            "/dashboard/latest-analysis",
-          ),
-          api.get<{ analyses: RecentAnalysis[] }>(
-            "/dashboard/recent-analyses?limit=5",
-          ),
-          api.get<{ recommendation: Recommendation }>(
-            "/dashboard/recommendation",
-          ),
-        ]);
-
-      if (cancelled) return;
-
-      if (profileRes.status === "fulfilled") setProfile(profileRes.value.data);
-      if (statsRes.status === "fulfilled") setStats(statsRes.value.data.stats);
-      if (latestRes.status === "fulfilled") {
-        setLatest(latestRes.value.data.analysis ?? null);
-      }
-      if (recentRes.status === "fulfilled") {
-        setRecent(recentRes.value.data.analyses ?? []);
-      }
-      if (recommendationRes.status === "fulfilled") {
-        setRecommendation(recommendationRes.value.data.recommendation);
-      }
-
-      const results = [
-        profileRes,
-        statsRes,
-        latestRes,
-        recentRes,
-        recommendationRes,
-      ];
-
-      const failed = results.filter(
-        (r): r is PromiseRejectedResult => r.status === "rejected",
+    queryFn: async ({ signal }) => {
+      const response = await api.get<ProfileData>(
+        "/auth/me",
+        { signal }
       );
 
-      if (failed.length > 0) {
-        failed.forEach((r) => console.error("Dashboard error:", r.reason));
-        setError("Some dashboard data failed to load.");
-      }
+      return response.data;
+    },
 
-      setLoading(false);
-    };
+    staleTime: 60 * 1000,
+  });
 
-    load();
+  // 2. Dashboard statistics
+  const statsQuery = useQuery({
+    queryKey: ["dashboard", "stats"],
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    queryFn: async ({ signal }) => {
+      const response = await api.get<{
+        stats: DashboardStats;
+      }>("/dashboard/stats", { signal });
 
-  return { profile, stats, latest, recent, recommendation, loading, error };
+      return response.data.stats;
+    },
+
+    staleTime: 60 * 1000,
+  });
+
+  // 3. Latest analysis
+  const latestQuery = useQuery({
+    queryKey: ["dashboard", "latest-analysis"],
+
+    queryFn: async ({ signal }) => {
+      const response = await api.get<{
+        analysis: LatestAnalysis | null;
+      }>("/dashboard/latest-analysis", { signal });
+
+      return response.data.analysis ?? null;
+    },
+
+    staleTime: 60 * 1000,
+  });
+
+  // 4. Recent analyses
+  const recentQuery = useQuery({
+    queryKey: ["dashboard", "recent-analyses", 5],
+
+    queryFn: async ({ signal }) => {
+      const response = await api.get<{
+        analyses: RecentAnalysis[];
+      }>("/dashboard/recent-analyses", {
+        params: { limit: 5 },
+        signal,
+      });
+
+      return response.data.analyses ?? [];
+    },
+
+    staleTime: 60 * 1000,
+  });
+
+  // 5. Recommendations
+  const recommendationQuery = useQuery({
+    queryKey: ["dashboard", "recommendation"],
+
+    queryFn: async ({ signal }) => {
+      const response = await api.get<{
+        recommendation: Recommendation;
+      }>("/dashboard/recommendation", { signal });
+
+      return response.data.recommendation;
+    },
+
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const queries = [
+    profileQuery,
+    statsQuery,
+    latestQuery,
+    recentQuery,
+    recommendationQuery,
+  ];
+
+  // Wait for all initial requests to settle.
+  const loading = queries.some((query) => query.isPending);
+
+  // One failed endpoint won't hide successful results.
+  const error = queries.some((query) => query.isError)
+    ? "Some dashboard data failed to load."
+    : "";
+
+  // Refresh all active dashboard queries when requested.
+  const refreshDashboard = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["dashboard"],
+    });
+
+  return {
+    profile: profileQuery.data ?? null,
+    stats: statsQuery.data ?? null,
+    latest: latestQuery.data ?? null,
+    recent: recentQuery.data ?? [],
+    recommendation: recommendationQuery.data ?? null,
+
+    loading,
+    error,
+    refreshDashboard,
+  };
 };
