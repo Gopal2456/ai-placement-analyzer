@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ListCheck,
   SquareText,
@@ -14,7 +15,6 @@ import api from "@/api/axios";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
 import useInterviewStore from "@/store/useInterviewStore";
-
 
 interface Resume {
   _id: string;
@@ -30,14 +30,26 @@ interface Resume {
 
 const Resumes = () => {
   const { selectedResumeId, setSelectedResumeId } = useInterviewStore();
-  const [resumes, setResumes] = useState<Resume[]>([]);
-  const [count, setCount] = useState(0);
-  const [profileReadiness, setProfileReadiness] = useState(0);
 
-  const [uploading, setUploading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const resumesQuery = useQuery({
+    queryKey: ["resumes"],
+
+    queryFn: async ({ signal }) => {
+      const response = await api.get("/resumes/", { signal });
+
+      return (response.data.resumes || []) as Resume[];
+    },
+
+    staleTime: 60 * 1000,
+  });
+
+  const resumes = resumesQuery.data ?? [];
+  const count = resumes.length;
+
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [refreshResumes, setRefreshResumes] = useState(0);
 
   const [resumeToDelete, setResumeToDelete] = useState<Resume | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -54,146 +66,159 @@ const Resumes = () => {
   }, [resumeToDelete, deletingId]);
 
   useEffect(() => {
-    if (!selectedResumeId) {
-      return;
+    if (!selectedResumeId && resumes.length > 0) {
+      setSelectedResumeId(resumes[0]._id);
     }
+  }, [resumes, selectedResumeId, setSelectedResumeId]);
 
-    const fetchAnalysis = async () => {
-      try {
-        const response = await api.get(`/analysis/${selectedResumeId}`);
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("resume", file);
 
-        setProfileReadiness(response.data.analysis?.overallScore || 0);
-      } catch (error: unknown) {
-        if (isAxiosError(error)) {
-          console.error(
-            "Failed to fetch profile readiness:",
-            error.response?.data?.message,
-          );
-        } else {
-          console.error("Failed to fetch profile readiness:", error);
-        }
+      return api.post("/resumes/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
 
-        setProfileReadiness(0);
-      }
-    };
+    onSuccess: async () => {
+      toast.success("Resume uploaded successfully!");
+      setUploadError("");
 
-    fetchAnalysis();
-  }, [selectedResumeId]);
+      // Fetch the updated resume list.
+      await queryClient.invalidateQueries({
+        queryKey: ["resumes"],
+      });
+    },
 
-  useEffect(() => {
-    const loadResumes = async () => {
-      try {
-        const response = await api.get("/resumes/");
-        const resumeList = response.data.resumes || [];
+    onError: (error: unknown) => {
+      console.error("Resume upload error:", error);
 
-        setResumes(resumeList);
+      const message = isAxiosError(error)
+        ? error.response?.data?.message ||
+          "Failed to upload resume. Please try again."
+        : "Failed to upload resume. Please try again.";
 
-        if (resumeList.length > 0 && !selectedResumeId) {
-          setSelectedResumeId(resumeList[0]._id);
-        }
+      setUploadError(message);
+      toast.error(message);
+    },
+  });
 
-        setCount(response.data.count);
-      } catch (error) {
-        console.error("Error fetching resumes:", error);
-      }
-    };
-
-    loadResumes();
-  }, [refreshResumes, selectedResumeId]);
-
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
     setUploadError("");
 
-    // Check file type
     if (file.type !== "application/pdf") {
       setUploadError("Please upload a PDF file.");
       event.target.value = "";
       return;
     }
 
-    // Check file size - 10 MB
     if (file.size > 10 * 1024 * 1024) {
       setUploadError("File size must be less than 10 MB.");
       event.target.value = "";
       return;
     }
 
-    const formData = new FormData();
-    formData.append("resume", file);
+    uploadMutation.mutate(file);
 
-    try {
-      setUploading(true);
-
-      await api.post("/resumes/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      toast.success("Resume uploaded successfully!");
-
-      // Refresh resume list after successful upload
-      setRefreshResumes((value) => value + 1);
-
-      event.target.value = "";
-    } catch (error: unknown) {
-      console.error("Resume upload error:", error);
-      toast.error("Failed to upload resume. Please try again.");
-
-      if (isAxiosError(error)) {
-        setUploadError(
-          error.response?.data?.message ||
-            "Failed to upload resume. Please try again.",
-        );
-      } else {
-        setUploadError("Failed to upload resume. Please try again.");
-      }
-    } finally {
-      setUploading(false);
-    }
+    // Allow the same file to be selected again later.
+    event.target.value = "";
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (resumeId: string) => {
+      await api.delete(`/resumes/${resumeId}`);
+      return resumeId;
+    },
+  });
 
   const handleDelete = async () => {
     if (!resumeToDelete) return;
 
     const id = resumeToDelete._id;
 
+    setDeletingId(id);
+
     try {
-      setDeletingId(id);
+      await deleteMutation.mutateAsync(id);
 
-      await api.delete(`/resumes/${id}`);
-
-      toast.success("Resume deleted successfully!");
-
+      // Update the cached list immediately.
       const remaining = resumes.filter((resume) => resume._id !== id);
-      setResumes(remaining);
-      setCount(remaining.length);
+
+      queryClient.setQueryData<Resume[]>(["resumes"], remaining);
+
+      // Remove the deleted resume's analysis from the cache.
+      queryClient.removeQueries({
+        queryKey: ["analysis", id],
+      });
+
+      // Refresh data from the backend.
+      await queryClient.invalidateQueries({
+        queryKey: ["resumes"],
+      });
 
       if (selectedResumeId === id) {
         setSelectedResumeId(remaining[0]?._id ?? "");
-        setProfileReadiness(0);
       }
 
-      setResumeToDelete(null); // close modal on success
+      toast.success("Resume deleted successfully!");
+      setResumeToDelete(null);
     } catch (error: unknown) {
       console.error("Resume delete error:", error);
 
-      if (isAxiosError(error)) {
-        toast.error(
-          error.response?.data?.message || "Failed to delete resume.",
-        );
-      } else {
-        toast.error("Failed to delete resume.");
-      }
-      // modal stays open so the user can retry or cancel
+      const message = isAxiosError(error)
+        ? error.response?.data?.message || "Failed to delete resume."
+        : "Failed to delete resume.";
+
+      toast.error(message);
     } finally {
       setDeletingId(null);
     }
   };
+
+  // const handleDelete = async () => {
+  //   if (!resumeToDelete) return;
+
+  //   const id = resumeToDelete._id;
+
+  //   try {
+  //     setDeletingId(id);
+
+  //     await api.delete(`/resumes/${id}`);
+
+  //     toast.success("Resume deleted successfully!");
+
+  //     const remaining = resumes.filter((resume) => resume._id !== id);
+  //     setResumes(remaining);
+  //     setCount(remaining.length);
+
+  //     if (selectedResumeId === id) {
+  //       setSelectedResumeId(remaining[0]?._id ?? "");
+  //       setProfileReadiness(0);
+  //     }
+
+  //     setResumeToDelete(null); // close modal on success
+  //   } catch (error: unknown) {
+  //     console.error("Resume delete error:", error);
+
+  //     if (isAxiosError(error)) {
+  //       toast.error(
+  //         error.response?.data?.message || "Failed to delete resume.",
+  //       );
+  //     } else {
+  //       toast.error("Failed to delete resume.");
+  //     }
+  //     // modal stays open so the user can retry or cancel
+  //   } finally {
+  //     setDeletingId(null);
+  //   }
+  // };
 
   const selectedResumeData = resumes.find(
     (resume) => resume._id === selectedResumeId,
@@ -231,13 +256,17 @@ const Resumes = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploadMutation.isPending}
               className="group flex h-9.5 items-center gap-2 rounded-lg bg-gray-800 px-4 text-base font-medium text-white shadow-lg shadow-gray-900/10 transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {uploading ? "Uploading..." : "Upload"}
+              {uploadMutation.isPending ? "Uploading..." : "Upload"}
 
               <span className="text-lg leading-none">
-                {uploading ? <Loader className="h-4 w-4 animate-spin" /> : <Plus className="h-5 w-5" />}
+                {uploadMutation.isPending ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
               </span>
             </button>
           </div>
@@ -315,6 +344,26 @@ const Resumes = () => {
             </div>
 
             <div className="custom-scrollbar max-h-120 space-y-3 overflow-y-auto p-1 pr-2">
+              {resumesQuery.isPending && (
+                <p className="p-4 text-sm text-center text-gray-500">
+                  Loading resumes{" "}
+                  <Loader className="ml-2 inline h-4 w-4 animate-spin" />
+                </p>
+              )}
+
+              {resumesQuery.isError && (
+                <div className="rounded-xl bg-red-50 p-4 text-sm text-red-600">
+                  <p>Failed to load resumes.</p>
+
+                  <button
+                    type="button"
+                    onClick={() => void resumesQuery.refetch()}
+                    className="mt-2 font-semibold underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
               {resumes.map((resume) => {
                 const active = selectedResumeId === resume._id;
                 const isDeleting = deletingId === resume._id;
@@ -428,19 +477,23 @@ const Resumes = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
+                disabled={uploadMutation.isPending}
                 className="mt-4 flex min-h-37.5 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-violet-300 hover:bg-violet-50/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-lg text-violet-600">
-                  {uploading ? <Loader className="h-5 w-5 animate-spin " /> : "↑"}
+                  {uploadMutation.isPending ? (
+                    <Loader className="h-5 w-5 animate-spin " />
+                  ) : (
+                    "↑"
+                  )}
                 </div>
 
                 <h3 className="mt-3 text-sm font-semibold text-gray-800">
-                  {uploading ? "Uploading resume..." : "Upload another resume"}
+                  {uploadMutation.isPending ? "Uploading resume..." : "Upload another resume"}
                 </h3>
 
                 <p className="mt-1 text-xs text-gray-400">
-                  {uploading
+                  {uploadMutation.isPending
                     ? "Please wait while your resume is uploaded."
                     : "PDF files up to 10 MB"}
                 </p>

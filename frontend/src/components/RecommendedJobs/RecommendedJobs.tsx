@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { isAxiosError } from "axios";
 import api from "@/api/axios";
@@ -62,20 +63,6 @@ const INDIAN_CITIES = [
   "Surat",
 ];
 
-// TODO: replace with the skills from the user's parsed resume
-// const USER_SKILLS = [
-//   "React",
-//   "Next.js",
-//   "TypeScript",
-//   "JavaScript",
-//   "Node.js",
-//   "MongoDB",
-//   "Tailwind CSS",
-//   "REST API",
-//   "Git",
-// ];
-
-// Used to detect skills in job descriptions when the API returns none
 const SKILL_KEYWORDS: Record<string, string[]> = {
   React: ["react", "react.js", "reactjs"],
   "Next.js": ["next.js", "nextjs"],
@@ -149,38 +136,6 @@ const analyzeJob = (job: Job, userSkills: string[]): JobMatch => {
     missing,
   };
 };
-
-// const analyzeJob = (job: Job): JobMatch => {
-//   const found = new Map<string, string>();
-
-//   (job.skills || []).forEach((skill) =>
-//     found.set(normalizeSkill(skill), skill),
-//   );
-
-//   const text = `${job.title} ${job.description}`.toLowerCase();
-//   Object.entries(SKILL_KEYWORDS).forEach(([label, keywords]) => {
-//     if (keywords.some((keyword) => hasWord(text, keyword))) {
-//       const key = normalizeSkill(label);
-//       if (!found.has(key)) found.set(key, label);
-//     }
-//   });
-
-//   const userKeys = new Set(USER_SKILLS.map(normalizeSkill));
-//   const matched: string[] = [];
-//   const missing: string[] = [];
-
-//   found.forEach((label, key) => {
-//     (userKeys.has(key) ? matched : missing).push(label);
-//   });
-
-//   const total = matched.length + missing.length;
-
-//   return {
-//     score: total > 0 ? Math.round((matched.length / total) * 100) : null,
-//     matched,
-//     missing,
-//   };
-// };
 
 const timeAgo = (date?: string) => {
   if (!date) return "";
@@ -379,67 +334,50 @@ const DEFAULT_CITY = "Pune";
 const RecommendedJobs = () => {
   const { selectedResume, loading: resumeLoading } = useSelectedResume();
 
-  const userSkills = selectedResume?.skills ?? [];
+  // Stable reference so useMemo below doesn't recompute on every render
+  const userSkills = useMemo(
+    () => selectedResume?.skills ?? [],
+    [selectedResume],
+  );
+
   // Values actually used for the API call
   const [query, setQuery] = useState(DEFAULT_QUERY);
   const [location, setLocation] = useState(DEFAULT_CITY);
+  // Value typed in the input (applied on submit)
+  const [searchInput, setSearchInput] = useState(DEFAULT_QUERY);
 
   const setSelectedJobId = useInterviewStore((s) => s.setSelectedJobId);
   const selectedJobId = useInterviewStore((s) => s.selectedJobId);
 
-  // Value typed in the input (applied on submit)
-  const [searchInput, setSearchInput] = useState(DEFAULT_QUERY);
-
-  // Bumped to force a re-fetch with the same query/location
-  const [refreshTick, setRefreshTick] = useState(0);
-
-  // The latest response, tagged with the request it belongs to
-  const [result, setResult] = useState<{
-    key: string;
-    jobs: Job[];
-    error: string;
-  } | null>(null);
-
-  const requestKey = `${query}|${location}|${refreshTick}`;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    api
-      .get<JobsResponse>("/jobs/import", {
+  const jobsQuery = useQuery<JobsResponse, Error>({
+    queryKey: ["jobs", "import", query, location, 10],
+    queryFn: async ({ signal }) => {
+      const response = await api.get<JobsResponse>("/jobs/import", {
         params: { query, location, limit: 10 },
-      })
-      .then((response) => {
-        if (cancelled) return;
-        setResult({
-          key: requestKey,
-          jobs: response.data.jobs || [],
-          error: "",
-        });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        console.error("Fetch recommended jobs error:", err);
-
-        const message = isAxiosError<ApiErrorResponse>(err)
-          ? err.response?.data?.message || "Failed to fetch recommended jobs."
-          : "Failed to fetch recommended jobs.";
-
-        setResult({ key: requestKey, jobs: [], error: message });
+        signal,
       });
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
-    // Cancels stale responses when the user searches again quickly
-    return () => {
-      cancelled = true;
-    };
-  }, [query, location, requestKey]);
+  const jobs = useMemo(() => jobsQuery.data?.jobs ?? [], [jobsQuery.data]);
+  const loading = jobsQuery.isPending;
 
-  // Derived state: no setState needed inside the effect
-  const loading = result?.key !== requestKey;
-  const jobs = result?.jobs ?? [];
-  const error = loading ? "" : (result?.error ?? "");
+  // Show an error only when the request failed and there's no cached data
+  const error =
+    jobsQuery.isError && !jobsQuery.data
+      ? isAxiosError<ApiErrorResponse>(jobsQuery.error)
+        ? jobsQuery.error.response?.data?.message ||
+          "Failed to fetch recommended jobs."
+        : "Failed to fetch recommended jobs."
+      : "";
 
-  const refetch = () => setRefreshTick((t) => t + 1);
+  const refetch = () => {
+    void jobsQuery.refetch();
+  };
 
   const rankedJobs: JobWithMatch[] = useMemo(
     () =>
@@ -471,21 +409,11 @@ const RecommendedJobs = () => {
           ? "Good match"
           : "Needs improvement";
 
-  // const rankedJobs: JobWithMatch[] = useMemo(
-  //   () =>
-  //     jobs
-  //       .map((job) => ({ ...job, match: analyzeJob(job) }))
-  //       .sort((a, b) => (b.match.score ?? -1) - (a.match.score ?? -1)),
-  //   [jobs],
-  // );
-
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     const trimmed = searchInput.trim();
     if (!trimmed) return;
 
-    // If the query is unchanged, the effect won't re-run, so fetch directly
     if (trimmed === query) {
       refetch();
     } else {
@@ -494,7 +422,7 @@ const RecommendedJobs = () => {
   };
 
   const handleCityChange = (city: string) => {
-    setLocation(city); // effect re-fetches automatically
+    setLocation(city); 
   };
 
   return (
@@ -521,11 +449,11 @@ const RecommendedJobs = () => {
             <button
               type="button"
               onClick={refetch}
-              disabled={loading}
+              disabled={jobsQuery.isFetching}
               className="flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
             >
               <span>↻</span>
-              Refresh matches
+              {jobsQuery.isFetching ? "Refreshing..." : "Refresh matches"}
             </button>
           </div>
         </div>

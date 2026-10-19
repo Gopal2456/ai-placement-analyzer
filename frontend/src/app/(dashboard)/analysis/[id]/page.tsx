@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAnalysisDetail } from "./Useanalysisdetail";
 import AnalysisDetailView from "@/components/dashboard/Analysisdetailview"; 
 import Image from "next/image";
+import { Loader } from "lucide-react";
 
 const AnalysisDetailPage = () => {
   const router = useRouter();
@@ -27,7 +28,7 @@ const AnalysisDetailPage = () => {
           </div>
 
           <p className="mt-6 text-sm font-semibold text-gray-800">
-            Loading analysis...
+            Loading analysis <Loader className="ml-2 inline-block h-4 w-4 animate-spin text-gray-500" />
           </p>
         </div>
       </main>
